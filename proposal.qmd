@@ -1,0 +1,246 @@
+---
+title: "Neighbourhood Transport Environment Typology"
+subtitle: "Proposal"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+---
+
+# Executive Summary
+
+This project proposes the development of a machine learning (ML) based classification of Sheffield neighbourhoods according to their transport environment characteristics. Using publicly available transport, demographic, socio-economic and environmental data, the study will identify groups of neighbourhoods that share similar characteristics.  
+
+The resulting typology will provide a common evidence base for transport planning, regeneration, climate policy, public health interventions and place-based decision making. Rather than predicting an outcome, the project applies unsupervised machine learning techniques to discover naturally occurring neighbourhood types.  
+
+# Context & Direction  
+
+## Problem Statement
+
+Sheffield possesses a wide range of datasets covering road networks, traffic flows, speed restrictions, population characteristics, employment patterns, and socio-economic factors. However, these datasets are typically analysed separately, making it difficult to understand how neighbourhood transport environments vary across the city.
+
+Questions include:
+
+- Which areas have similar transport characteristics?
+- Where is car dependency greatest?
+- Which neighbourhoods experience transport accessibility challenges?
+- How should transport policies vary between different types of places?
+
+Currently, no consistent city-wide transport environment classification exists to support strategic decision-making.
+
+## Aim
+
+> To develop an evidence-based classification of Sheffield neighbourhoods that groups areas with similar transport, accessibility and socio-economic characteristics into meaningful transport environment types.
+
+The working title is Neighbourhood Transport Environment Typology (NTET). 
+
+The council has previously used similar geodemographic classification products called Acorn and Mosaic. All three answer the same broad question i.e. *"what kind of place is this?"* The difference is the lens through which they classify places. Acorn and Mosaic classify people and places for marketing and service design, whereas NTET will classify neighbourhoods for transport planning and policy design.  
+
+| System  | Primary focus                                                            |
+| ------- | ------------------------------------------------------------------------ |
+| Acorn   | Consumer and socio-economic characteristics of residents                 |
+| Mosaic  | Consumer, lifestyle and behavioural segmentation                         |
+| NTET    | Transport, accessibility, mobility and built-environment characteristics |
+
+
+## Research Question
+
+> Can unsupervised machine learning techniques be used to develop a robust and interpretable typology of Sheffield neighbourhoods based on transport, demographic and environmental characteristics, and how could such a typology support place-based policy and investment decisions?  
+
+## Objectives
+
+1. Create a neighbourhood-level analytical dataset.  
+2. Examine relationships between transport, demographic and socio-economic indicators.  
+3. Identify groups of neighbourhoods using clustering algorithms.  
+4. Evaluate cluster robustness and interpretability.  
+5. Produce a practical transport environment typology.  
+6. Assess potential applications within local government decision-making.  
+
+# Methodology
+
+## Study Geography
+
+The preferred unit of analysis is the 345 Lower Super Output Areas (LSOA), providing a balance between geographical detail and interpretability.  
+
+Alternative Sheffield geographies are neighbourhoods (100), MSOAs (70), or Wards (28). 
+
+## Stage 1: Data Preparation  
+
+a. Assemble datasets
+a. Handle missing values
+a. Standardise variables
+a. Explore distributions
+a. Examine correlations
+
+## Stage 2: Exploratory Analysis  
+
+Use exploratory techniques to understand the principal dimensions of variation across neighbourhoods, including correlation analysis and Principal Component Analysis (PCA).  
+
+Potential latent dimensions may include:
+
+a. Urban intensity
+a. Accessibility
+a. Connectivity
+a. Car dependency
+
+Note: "Potential latent dimensions" refer to underlying neighbourhood characteristics that are not directly measured but may be inferred from correlations among observed variables. PCA will be used to identify these underlying dimensions and assess whether they represent concepts such as urban intensity, accessibility, connectivity, or car dependency.
+
+## Stage 3: Clustering approaches compared    
+
+**K-Means**: simple implementation, easily explained to non-technical audiences, and computationally efficient.  
+**Hierarchical Clustering**: produces a hierarchy of neighbourhood relationships and useful for interpretation.  
+**Gaussian Mixture Models**: allows probabilistic cluster membership and captures uncertainty in classification.  
+
+## Stage 4: Cluster evaluation    
+
+a. Silhouette score
+a. Cluster stability
+a. Statistical separation
+a. Policy interpretability
+
+The preferred solution will balance statistical performance with practical usefulness.
+
+# Potential  
+
+## NTET Pros & Cons
+
+| Advantages | Disadvantages |
+|------------|---------------|
+| **Holistic view of place**: Reflects the reality that road safety, accessibility, public health, active travel and sustainability are all influenced by the same underlying transport environment.  | **Risk of becoming too broad**: A classification designed to support many objectives may not be optimal for any single objective. |
+| **Supports place-based decision making**: Enables neighbourhoods to be understood as complete transport environments rather than through individual datasets or performance indicators.  | **Loss of specificity**: Important distinctions relevant to road safety or accessibility may be masked when multiple objectives are combined into a single typology. |
+| **Improves communication**: Provides a simple and intuitive framework, similar to Acorn or Mosaic, that is easier for senior leaders and non-specialists to understand.  | **Harder to interpret**: Cluster membership may be driven by several factors at once, making it difficult to explain why a neighbourhood belongs to a particular type. |
+| **Encourages integrated policy**: Helps identify interventions that can deliver multiple benefits, such as improved safety, healthier travel choices and better accessibility. | **Hidden weighting issues**: Some themes may dominate the classification simply because they contribute more variables than others. |
+| **Creates a shared evidence base**: Can be used across transport planning, public health, regeneration, climate and economic development activities. | **More difficult to validate**: There is no single outcome against which the typology can be tested, unlike a dedicated safety or accessibility model. |
+| **Reusable analytical asset**: The classification could support future modelling, strategy development and investment prioritisation. | **Potential stakeholder disagreement**: Different service areas may have different views about which objectives and variables should be included. |
+| **Identifies underlying transport environments**: Can reveal that geographically distant neighbourhoods share similar transport challenges and opportunities. | **Risk of mission creep**: Additional objectives can continually be added, increasing complexity and reducing clarity. |
+
+
+## Candidate Variables
+
+::::: {layout-ncol=2}
+
+::: {}
+
+**Transport Network**:  
+
+a. Road density
+a. A-road density
+a. Junction density
+a. Road network length
+a. Road-class proportions
+
+**Traffic Conditions**:  
+
+a. Average traffic flow
+a. Traffic intensity
+a. Speed environment
+a. Speed limit characteristics
+
+**Accessibility**:  
+
+a. Distance to city centre
+a. Bus stop density
+a. Public transport accessibility
+a. Walking accessibility measures
+
+:::
+
+::: {}
+
+**Population**:  
+
+a. Population density
+a. Employment density
+a. Daytime population
+a. Car ownership
+
+**Socio-economic Factors**:  
+
+a. Index of Multiple Deprivation
+a. Income deprivation
+a. Employment deprivation
+a. Health indicators
+
+**Active Travel Environment**:  
+
+a. Cycle infrastructure
+a. Walkability metrics
+a. Access to green space
+
+:::
+
+:::::
+
+## Illustrative Typology
+
+Potential neighbourhood categories may include:
+
+- **Connected Urban Centres** with high employment density, excellent accessibility, strong public transport provision, and lower reliance on private cars.  
+- **Mixed Urban Neighbourhoods** with medium density, moderate accessibility, and diverse travel behaviours.  
+- **Car-Oriented Outer Suburbs** with lower density, greater car dependency, and longer travel distances.  
+- **Industrial and Employment Areas** with a high concentration of jobs, strategic road access, and limited residential population.  
+- **Peripheral Communities** with lower accessibility, potential transport poverty concerns, and greater travel challenges.  
+
+Final categories would emerge from the data-driven modelling process.
+
+## Potential Applications
+
+**Transport Strategy**: support development of location-specific transport policies.
+
+**Active Travel**: identify neighbourhoods with high potential for walking and cycling interventions.
+
+**Public Health**: investigate relationships between transport environments and health outcomes.
+
+**Climate and Sustainability**: identify areas where modal shift opportunities may be greatest.
+
+**Regeneration**: support understanding of how transport conditions align with economic development priorities.
+
+**Future Predictive Analytics**: provide contextual features for future transport, demand forecasting and road-safety models.
+
+## Benefits
+
+**Technical**:  
+
+- Demonstrates unsupervised machine learning capability.
+- Produces reusable analytical assets.
+- Strengthens spatial data science capability.
+
+**Organisational**:  
+
+- Creates a shared evidence base.
+- Improves understanding of neighbourhood transport environments.
+- Supports place-based policy design.
+
+**Academic**:
+
+- Applies machine learning to a real organisational challenge.
+- Demonstrates feature engineering, clustering and model evaluation.
+- Meets the requirements of a business-focused machine learning project.
+
+## Future Development
+
+Potential follow-on work includes:
+
+1. Comparing outcomes across neighbourhood types.
+1. Incorporating typology classifications into predictive models.
+1. Supporting investment prioritisation and policy targeting.
+
+This would create a reusable analytical framework that complements future transport and road-safety modelling projects.

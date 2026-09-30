@@ -1,0 +1,16 @@
+/* Optional: remove fill completely (transparent) */
+div.mermaid svg .node rect {
+  fill: transparent !important;
+  stroke: none !important;
+}
+
+.quarto-float-tbl figcaption {
+  text-align: left !important;
+  margin-bottom: 0.02rem !important;
+}
+
+.gt_table {
+  margin-top: 0 !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}

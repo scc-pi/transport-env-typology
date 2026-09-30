@@ -1,0 +1,125 @@
+---
+title: "Data Preparation"
+subtitle: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+---
+
+```{r setup}
+
+# Packages
+library(tidyverse)
+library(targets)
+library(gt)
+library(gtExtras)
+library(here)
+library(readxl)
+
+# ggplot theme
+set_theme(theme_minimal())
+
+# gt (table) theme & format
+my_gt <- function(df) {
+  gt(df) |>
+    fmt(
+      columns = where(is.numeric),
+      fns = function(x) {
+        ifelse(
+          abs(x) < 10,
+          format(round(x, 3), nsmall = 3, big.mark = ","),
+          format(round(x, 0), nsmall = 0, big.mark = ",")
+        )
+      }
+    ) |>
+    gt_theme_pff()
+}
+```
+
+
+
+# Assemble datasets  
+
+We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help us manage our machine learning (ML) pipeline. 
+
+```{r}
+#| label: tbl-ingest
+#| tbl-cap: "Data ingested (via `_targets.R` & `R\\ingest.R`)"
+#| column: page-right
+
+path_transport_data_xls <- here("data","sheffield_transport_datasets.xlsx")
+
+# Read a list of our raw datasets from a spreadsheet
+df_ingested <- read_xlsx(
+  path_transport_data_xls, 
+  sheet = "Raw datasets", 
+  skip = 3
+)
+
+# List the raw datasets ingested
+df_ingested |>
+  mutate(Row = row_number(), .before = 1) |>
+  my_gt() |>
+  fmt(
+      columns = "Row",
+      fns = function(x) {format(round(x, 0), nsmall = 0, big.mark = ",")}
+    ) |>
+  cols_label(Row = "") |>
+  opt_css("
+    td:nth-child(6) {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+  ")
+```
+
+```{r}
+#| label: tbl-process
+#| tbl-cap: "Data processed (via `_targets.R` & `R\\process.R`)"
+#| column: page-right
+
+# Read a list of our processed data from the same spreadsheet
+df_processed <- read_xlsx(
+  path_transport_data_xls, 
+  sheet = "LSOA indicators", 
+  skip = 3
+)
+
+# List the processed datasets
+df_processed |>
+  mutate(Row = row_number(), .before = 1) |>
+  my_gt() |>
+  fmt(
+      columns = "Row",
+      fns = function(x) {format(round(x, 0), nsmall = 0, big.mark = ",")}
+    ) |>
+  cols_label(Row = "")
+```
+
+# Handle missing values
+
+# Standardise variables
+
+# Explore distributions
+
+# Examine correlations
+

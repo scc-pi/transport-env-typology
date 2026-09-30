@@ -47,3 +47,13 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+*.Rproj
+.positai
+
+data/
+_targets/
+*.txt
+.copilot
+*.html
+*_files/
