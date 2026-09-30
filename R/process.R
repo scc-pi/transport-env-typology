@@ -30,6 +30,9 @@ filter_sheffield_census <- function(df) {
 #   geometry_length_m - pre-computed link length in metres (use for full links)
 # RoadNode has no classification — only geometry is used (for junction counts).
 
+# Returns a data frame (one row per LSOA) with road length totals, link counts,
+# A-road/motorway share, and density metrics (road_density_km_per_km2,
+# a_road_density_km_per_km2, junction_density_per_km2).
 process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa) {
   lsoa_bng <- to_bng(sf_lsoa)
   links_bng <- to_bng(sf_ngd_roadlink)
@@ -87,6 +90,8 @@ process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
 # The speed layer carries its own road link geometry (47,363 features, same as
 # roadlink) — no join to sf_ngd_roadlink is needed. Spatial join to LSOAs only.
 
+# Returns a data frame (one row per LSOA) with mean/median indicative speed
+# limit, mean AM-peak average speed, and proportions of links at ≤20 and ≤30 mph.
 process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
   lsoa_bng  <- to_bng(sf_lsoa)
   speed_bng <- to_bng(sf_ngd_speed)
@@ -124,6 +129,8 @@ process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
 # Cycling infrastructure = "Cycle Track Or Cycle Way" (dedicated).
 # Bridleways are included as they are legal for cycling under the Highway Act.
 
+# Returns a data frame (one row per LSOA) with total cycle infrastructure length
+# and density (cycle_infra_density_m_per_km2). LSOAs with no infrastructure get 0.
 process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
   lsoa_bng    <- to_bng(sf_lsoa)
   highway_bng <- to_bng(sf_ngd_highway)
@@ -167,6 +174,9 @@ process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
 
 # **** Traffic flow (DfT API) ****
 
+# Returns a data frame (one row per LSOA) with mean AADF for all motor vehicles,
+# cars, buses, and pedal cycles, plus a count of DfT count points (count_point_n).
+# Only LSOAs containing at least one count point are returned.
 process_lsoa_traffic <- function(df_flow, sf_lsoa) {
   lsoa_bng <- to_bng(sf_lsoa)
 
@@ -198,6 +208,8 @@ process_lsoa_traffic <- function(df_flow, sf_lsoa) {
 
 # *** Accessibility: distance to city centre ****
 
+# Returns a data frame (one row per LSOA) with straight-line distance from each
+# LSOA centroid to Sheffield city centre in km (dist_city_centre_km).
 process_lsoa_city_centre_dist <- function(sf_lsoa) {
   # Sheffield city centre (approximate centroid of the retail/civic core)
   city_centre_bng <- sf::st_sfc(
@@ -220,6 +232,8 @@ process_lsoa_city_centre_dist <- function(sf_lsoa) {
 
 # **** Bus stops (NaPTAN) ****
 
+# Returns a data frame (one row per LSOA) with bus stop count and density
+# (bus_stop_density_per_km2). LSOAs with no stops get a count of 0.
 process_lsoa_bus_stops <- function(df_naptan, sf_lsoa) {
   lsoa_bng <- to_bng(sf_lsoa)
   areas    <- lsoa_area_km2(sf_lsoa)
