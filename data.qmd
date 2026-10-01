@@ -25,41 +25,34 @@ execute:
   message: false
 ---
 
+We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our machine learning (ML) pipeline. 
+
 ```{r setup}
 
 # Packages
 library(tidyverse)
+library(here)
 library(targets)
 library(gt)
 library(gtExtras)
-library(here)
+library(sf)
+library(leaflet)
+library(osdatahub)
 library(readxl)
+
+# Sources all R/*.R same as _targets.R
+tar_source()       
+
+# Pull any pre-computed targets we need
+tar_load(sf_city)
 
 # ggplot theme
 set_theme(theme_minimal())
-
-# gt (table) theme & format
-my_gt <- function(df) {
-  gt(df) |>
-    fmt(
-      columns = where(is.numeric),
-      fns = function(x) {
-        ifelse(
-          abs(x) < 10,
-          format(round(x, 3), nsmall = 3, big.mark = ","),
-          format(round(x, 0), nsmall = 0, big.mark = ",")
-        )
-      }
-    ) |>
-    gt_theme_pff()
-}
 ```
-
-
 
 # Assemble datasets  
 
-We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help us manage our machine learning (ML) pipeline. 
+## Ingest
 
 ```{r}
 #| label: tbl-ingest
@@ -92,6 +85,8 @@ df_ingested |>
   ")
 ```
 
+## Process
+
 ```{r}
 #| label: tbl-process
 #| tbl-cap: "Data processed (via `_targets.R` & `R\\process.R`)"
@@ -115,11 +110,24 @@ df_processed |>
   cols_label(Row = "")
 ```
 
+Note: `sf_lsoa_imd` ingested at LSOA level courtesy of MHCLG (see @tbl-ingest).
+
+## Spatial data  
+
+BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
+
 # Handle missing values
 
 # Standardise variables
 
 # Explore distributions
+  
+  
+```{r}
+#| label: city-boundary
 
+make_basemap() 
+```
+  
 # Examine correlations
 

@@ -2,50 +2,28 @@
 
 # **** Manual downloads ****
 
-# Some datasets were downloaded manually, and are referenced by
-# a relative absolute path here. 
+# Datasets that were downloaded manually are referenced by a relative path here 
 
 NGD_DIR <- here::here("data", "download", "NGD Traffic Speed Sheffield")
-CITY_BOUNDARY_DIR <- here::here("data", "download")
 
 # **** Boundaries ****
+# Sheffield local authority ID for ONS is E08000019
 
 get_boundary_city <- function() {
-  file.path(CITY_BOUNDARY_DIR, "city.gpkg")
+  # Sheffield City boundary
+  # SCC AGOL 
+  # Source: https://sheffieldcc.maps.arcgis.com/home/item.html?id=97cfdc3a164c48219826b907c0a5064f#overview
+  sf::read_sf("https://utility.arcgis.com/usrsvcs/servers/97cfdc3a164c48219826b907c0a5064f/rest/services/AGOL/Boundaries/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson") |> 
+    sf::st_transform(27700)
 }
 
-get_boundary_lsoa <- function(
-    out_path = here::here("data", "boundaries", "lsoa.gpkg")
-) {
-  # 2011 LSOA boundaries (generalised, clipped) for Sheffield.
-  # Note: using 2011 boundaries because the 2021 boundary service is not
-  # currently published on the ONS Open Geography ArcGIS server. The 2011
-  # LSOA codes align directly with IMD 2019. Census 2021 data will require
-  # joining via the ONS LSOA 2011 to 2021 lookup table.
-  # Source: ONS Open Geography Portal
-  resp <- httr::GET(
-    paste0(
-      "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/",
-      "LSOA_Dec_2011_Boundaries_Generalised_Clipped_BGC_EW_V3/FeatureServer/0/query"
-    ),
-    query = list(
-      where          = "LSOA11NM LIKE 'Sheffield%'",
-      outFields      = "LSOA11CD,LSOA11NM",
-      returnGeometry = "true",
-      f              = "geojson"
-    )
-  )
-  httr::stop_for_status(resp)
-
-  # Write raw GeoJSON to a temp file then read as sf
-  # (sf::read_sf() cannot handle special characters in URLs directly)
-  tf <- tempfile(fileext = ".geojson")
-  writeBin(httr::content(resp, "raw"), tf)
-  on.exit(unlink(tf))
-
-  sf::read_sf(tf) |>
-    sf::write_sf(out_path, delete_dsn = TRUE)
-  out_path
+get_boundary_lsoa <- function() {
+  # 2021 generalised (20m) LSOA boundaries for Sheffield
+  # ONS Open Geography Portal
+  # Source: https://geoportal.statistics.gov.uk/datasets/ons::lower-layer-super-output-areas-december-2021-boundaries-ew-bgc-v5-2/about
+  URLencode("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?where=LSOA21NM LIKE 'Sheffield%'&outFields=*&f=geojson") |>
+    sf::read_sf() |> 
+    sf::st_transform(27700)
 }
 
 # **** OS NGD **** 
@@ -125,20 +103,15 @@ get_raw_count <- function() {
   do.call(rbind, all_pages)
 }
 
-# **** IMD 2019 ****
+# **** IMD 2025 ****
 
-get_imd_file <- function(
-    out_path = here::here("data", "raw", "imd2019.csv")
-) {
-  # English Indices of Deprivation 2019 - scores, ranks, deciles at LSOA level
-  # Source: https://www.gov.uk/government/statistics/english-indices-of-deprivation-2019
-  url <- paste0(
-    "https://assets.publishing.service.gov.uk/government/uploads/system/",
-    "uploads/attachment_data/file/845345/",
-    "File_7_-_All_IoD2019_Scores__Ranks__Deciles_and_Population_Denominators_3.csv"
-  )
-  httr::GET(url, httr::write_disk(out_path, overwrite = TRUE))
-  out_path
+get_lsoa_imd <- function() {
+  # Indices of Deprivation 2025 at LSOA level for Sheffield
+  # MHCLG GeoPortal
+  # Source: https://www.arcgis.com/home/item.html?id=0fddc254c1184386bbeed27ed49bbd03#overview
+  URLencode("https://services-eu1.arcgis.com/EbKcOS6EXZroSyoi/arcgis/rest/services/LSOA_IMD2025_WGS84/FeatureServer/0/query?where=LSOA21NM LIKE 'Sheffield%'&outFields=*&f=geojson") |>
+    sf::read_sf() |> 
+    sf::st_transform(27700)
 }
 
 # **** NaPTAN (bus stops) ****

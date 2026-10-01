@@ -18,28 +18,16 @@ list(
 
   # **** Boundaries ****
 
-  # Sheffield city boundary (reused from traffic-collisions project)
-  tar_target(
-    file_boundary_city,
-    get_boundary_city(),
-    format = "file"
-  ),
-
-  # Sheffield LSOAs - downloaded from ONS Open Geography Portal
-  tar_target(
-    file_boundary_lsoa,
-    get_boundary_lsoa(),
-    format = "file"
-  ),
-
+  # Sheffield City boundary (SCC AGOL API)
   tar_target(
     sf_city,
-    sf::read_sf(file_boundary_city) |> sf::st_transform(4326)
+    get_boundary_city()
   ),
 
+  # Sheffield LSOAs (ONS Open Geography Portal API)
   tar_target(
     sf_lsoa,
-    sf::read_sf(file_boundary_lsoa) |> sf::st_transform(4326)
+    get_boundary_lsoa()
   ),
 
   # **** OS NGD - Road Network ****
@@ -91,17 +79,11 @@ list(
     get_raw_count()
   ),
 
-  # **** IMD 2019 ****
+  # **** IMD 2025 ****
 
   tar_target(
-    file_imd,
-    get_imd_file(),
-    format = "file"
-  ),
-
-  tar_target(
-    df_imd,
-    readr::read_csv(file_imd, show_col_types = FALSE)
+    sf_lsoa_imd,
+    get_lsoa_imd()
   ),
 
   # **** NaPTAN (bus stops) ****
@@ -168,8 +150,7 @@ list(
   ),
 
   # **** Process ****
-  # One target per source, each returning a data frame keyed on LSOA11CD
-  # (or LSOA21CD for Census 2021 — see note in R/process.R).
+  # One target per source, each returning a data frame keyed on LSOA21CD
 
   # Road network (OS NGD) — computationally expensive spatial intersections
   tar_target(
@@ -203,12 +184,6 @@ list(
   tar_target(
     df_lsoa_bus_stops,
     process_lsoa_bus_stops(df_naptan, sf_lsoa)
-  ),
-
-  # Socio-economic
-  tar_target(
-    df_lsoa_imd,
-    process_lsoa_imd(df_imd, sf_lsoa)
   ),
 
   # Census 2021

@@ -12,10 +12,9 @@ to_bng <- function(sf_obj) sf::st_transform(sf_obj, 27700)
 # Compute LSOA area in km² from sf_lsoa. Returns a plain data frame.
 lsoa_area_km2 <- function(sf_lsoa) {
   sf_lsoa |>
-    to_bng() |>
-    dplyr::mutate(area_km2 = as.numeric(sf::st_area(geom)) / 1e6) |>
+    dplyr::mutate(area_km2 = as.numeric(sf::st_area(sf_lsoa)) / 1e6) |>
     sf::st_drop_geometry() |>
-    dplyr::select(LSOA11CD, area_km2)
+    dplyr::select(LSOA21CD, area_km2)
 }
 
 # Filter a Census 2021 bulk CSV to Sheffield rows (by the geography name column)
@@ -34,7 +33,6 @@ filter_sheffield_census <- function(df) {
 # A-road/motorway share, and density metrics (road_density_km_per_km2,
 # a_road_density_km_per_km2, junction_density_per_km2).
 process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa) {
-  lsoa_bng <- to_bng(sf_lsoa)
   links_bng <- to_bng(sf_ngd_roadlink)
   nodes_bng <- to_bng(sf_ngd_roadnode)
   areas <- lsoa_area_km2(sf_lsoa)
@@ -43,13 +41,13 @@ process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
   message("Intersecting road links with LSOAs — this may take a moment...")
   links_clipped <- sf::st_intersection(
     dplyr::select(links_bng, osid, roadclassification),
-    dplyr::select(lsoa_bng, LSOA11CD)
+    dplyr::select(sf_lsoa, LSOA21CD)
   ) |>
     dplyr::mutate(link_length_m = as.numeric(sf::st_length(geometry)))
 
   road_lengths <- links_clipped |>
     sf::st_drop_geometry() |>
-    dplyr::group_by(LSOA11CD) |>
+    dplyr::group_by(LSOA21CD) |>
     dplyr::summarise(
       road_length_m   = sum(link_length_m, na.rm = TRUE),
       a_road_length_m = sum(
@@ -64,16 +62,16 @@ process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
   # Count road nodes (junctions) falling within each LSOA.
   junction_counts <- sf::st_join(
     dplyr::select(nodes_bng, osid),
-    dplyr::select(lsoa_bng, LSOA11CD),
+    dplyr::select(sf_lsoa, LSOA21CD),
     join = sf::st_within
   ) |>
     sf::st_drop_geometry() |>
-    dplyr::filter(!is.na(LSOA11CD)) |>
-    dplyr::count(LSOA11CD, name = "junction_count")
+    dplyr::filter(!is.na(LSOA21CD)) |>
+    dplyr::count(LSOA21CD, name = "junction_count")
 
   areas |>
-    dplyr::left_join(road_lengths, by = "LSOA11CD") |>
-    dplyr::left_join(junction_counts, by = "LSOA11CD") |>
+    dplyr::left_join(road_lengths, by = "LSOA21CD") |>
+    dplyr::left_join(junction_counts, by = "LSOA21CD") |>
     dplyr::mutate(
       road_density_km_per_km2 = (road_length_m   / 1000) / area_km2,
       a_road_density_km_per_km2 = (a_road_length_m / 1000) / area_km2,
@@ -93,7 +91,6 @@ process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
 # Returns a data frame (one row per LSOA) with mean/median indicative speed
 # limit, mean AM-peak average speed, and proportions of links at ≤20 and ≤30 mph.
 process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
-  lsoa_bng  <- to_bng(sf_lsoa)
   speed_bng <- to_bng(sf_ngd_speed)
 
   # AM peak average speed: mean of in and against direction, converted to mph
@@ -107,12 +104,12 @@ process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
 
   sf::st_join(
     dplyr::select(speed_bng, indicativespeedlimit_mph, avg_speed_am_mph),
-    dplyr::select(lsoa_bng, LSOA11CD),
+    dplyr::select(sf_lsoa, LSOA21CD),
     join = sf::st_within
   ) |>
     sf::st_drop_geometry() |>
-    dplyr::filter(!is.na(LSOA11CD)) |>
-    dplyr::group_by(LSOA11CD) |>
+    dplyr::filter(!is.na(LSOA21CD)) |>
+    dplyr::group_by(LSOA21CD) |>
     dplyr::summarise(
       mean_speed_limit_mph = mean(indicativespeedlimit_mph, na.rm = TRUE),
       median_speed_limit_mph = median(indicativespeedlimit_mph, na.rm = TRUE),
@@ -132,7 +129,6 @@ process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
 # Returns a data frame (one row per LSOA) with total cycle infrastructure length
 # and density (cycle_infra_density_m_per_km2). LSOAs with no infrastructure get 0.
 process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
-  lsoa_bng    <- to_bng(sf_lsoa)
   highway_bng <- to_bng(sf_ngd_highway)
   areas       <- lsoa_area_km2(sf_lsoa)
 
@@ -146,7 +142,7 @@ process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
     return(
       dplyr::left_join(
         areas, 
-        dplyr::tibble(LSOA11CD = character()), by = "LSOA11CD"
+        dplyr::tibble(LSOA21CD = character()), by = "LSOA21CD"
       ) |>
       dplyr::mutate(cycle_infra_length_m = 0, cycle_infra_density_m_per_km2 = 0)
     )
@@ -154,17 +150,17 @@ process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
 
   cycle_lsoa <- sf::st_intersection(
     dplyr::select(cycle_infra, description),
-    dplyr::select(lsoa_bng, LSOA11CD)
+    dplyr::select(sf_lsoa, LSOA21CD)
   ) |>
     dplyr::mutate(length_m = as.numeric(sf::st_length(geometry))) |>
     sf::st_drop_geometry() |>
-    dplyr::group_by(LSOA11CD) |>
+    dplyr::group_by(LSOA21CD) |>
     dplyr::summarise(
       cycle_infra_length_m = sum(length_m, na.rm = TRUE), .groups = "drop"
     )
 
   areas |>
-    dplyr::left_join(cycle_lsoa, by = "LSOA11CD") |>
+    dplyr::left_join(cycle_lsoa, by = "LSOA21CD") |>
     tidyr::replace_na(list(cycle_infra_length_m = 0)) |>
     dplyr::mutate(
       cycle_infra_density_m_per_km2 = cycle_infra_length_m / area_km2
@@ -178,8 +174,6 @@ process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
 # cars, buses, and pedal cycles, plus a count of DfT count points (count_point_n).
 # Only LSOAs containing at least one count point are returned.
 process_lsoa_traffic <- function(df_flow, sf_lsoa) {
-  lsoa_bng <- to_bng(sf_lsoa)
-
   sf_flow_bng <- df_flow |>
     dplyr::filter(!is.na(latitude), !is.na(longitude)) |>
     sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
@@ -190,12 +184,12 @@ process_lsoa_traffic <- function(df_flow, sf_lsoa) {
       sf_flow_bng, road_category, all_motor_vehicles,
       pedal_cycles, cars_and_taxis, buses_and_coaches
     ),
-    dplyr::select(lsoa_bng, LSOA11CD),
+    dplyr::select(sf_lsoa, LSOA21CD),
     join = sf::st_within
   ) |>
     sf::st_drop_geometry() |>
-    dplyr::filter(!is.na(LSOA11CD)) |>
-    dplyr::group_by(LSOA11CD) |>
+    dplyr::filter(!is.na(LSOA21CD)) |>
+    dplyr::group_by(LSOA21CD) |>
     dplyr::summarise(
       count_point_n = dplyr::n(),
       mean_aadf_all = mean(all_motor_vehicles, na.rm = TRUE),
@@ -218,16 +212,16 @@ process_lsoa_city_centre_dist <- function(sf_lsoa) {
   ) |>
     sf::st_transform(27700)
 
-  sf_lsoa |>
-    to_bng() |>
-    sf::st_centroid() |>
+  centroids <- sf::st_centroid(sf_lsoa)
+
+  centroids |>
     dplyr::mutate(
       dist_city_centre_km = as.numeric(
-        sf::st_distance(geom, city_centre_bng)
+        sf::st_distance(centroids, city_centre_bng)
       ) / 1000
     ) |>
     sf::st_drop_geometry() |>
-    dplyr::select(LSOA11CD, dist_city_centre_km)
+    dplyr::select(LSOA21CD, dist_city_centre_km)
 }
 
 # **** Bus stops (NaPTAN) ****
@@ -235,7 +229,6 @@ process_lsoa_city_centre_dist <- function(sf_lsoa) {
 # Returns a data frame (one row per LSOA) with bus stop count and density
 # (bus_stop_density_per_km2). LSOAs with no stops get a count of 0.
 process_lsoa_bus_stops <- function(df_naptan, sf_lsoa) {
-  lsoa_bng <- to_bng(sf_lsoa)
   areas    <- lsoa_area_km2(sf_lsoa)
 
   sf_stops_bng <- df_naptan |>
@@ -245,43 +238,23 @@ process_lsoa_bus_stops <- function(df_naptan, sf_lsoa) {
 
   stops_per_lsoa <- sf::st_join(
     sf_stops_bng,
-    dplyr::select(lsoa_bng, LSOA11CD),
+    dplyr::select(sf_lsoa, LSOA21CD),
     join = sf::st_within
   ) |>
     sf::st_drop_geometry() |>
-    dplyr::filter(!is.na(LSOA11CD)) |>
-    dplyr::count(LSOA11CD, name = "bus_stop_count")
+    dplyr::filter(!is.na(LSOA21CD)) |>
+    dplyr::count(LSOA21CD, name = "bus_stop_count")
 
   areas |>
-    dplyr::left_join(stops_per_lsoa, by = "LSOA11CD") |>
+    dplyr::left_join(stops_per_lsoa, by = "LSOA21CD") |>
     tidyr::replace_na(list(bus_stop_count = 0)) |>
     dplyr::mutate(bus_stop_density_per_km2 = bus_stop_count / area_km2) |>
     dplyr::select(-area_km2)
 }
 
-# **** IMD 2019 ****
-
-process_lsoa_imd <- function(df_imd, sf_lsoa) {
-  df_imd |>
-    dplyr::filter(`LSOA code (2011)` %in% sf_lsoa$LSOA11CD) |>
-    dplyr::select(
-      LSOA11CD = `LSOA code (2011)`,
-      imd_score = `Index of Multiple Deprivation (IMD) Score`,
-      imd_rank = `Index of Multiple Deprivation (IMD) Rank (where 1 is most deprived)`,
-      imd_decile = `Index of Multiple Deprivation (IMD) Decile (where 1 is most deprived 10% of LSOAs)`,
-      income_score = `Income Score (rate)`,
-      employment_score = `Employment Score (rate)`,
-      health_score = `Health Deprivation and Disability Score`,
-      living_env_score = `Living Environment Score`
-    )
-}
-
 # **** Census 2021 ****
-# Census 2021 uses 2021 LSOA codes (LSOA21CD). Our boundaries use 2011 codes
-# (LSOA11CD). For most Sheffield LSOAs the code is unchanged, but a small
-# number were split or merged in the 2021 redesign. The final analytical
-# dataset join will need the ONS LSOA 2011 to 2021 lookup to handle mismatches.
-# Each function adds a LSOA21CD column as the key for that join.
+# Census 2021 uses 2021 LSOA codes (LSOA21CD), consistent with sf_lsoa.
+# Each function outputs LSOA21CD as the key for joining to the analytical dataset.
 
 process_lsoa_census_population <- function(df_census_population) {
   df_census_population |>

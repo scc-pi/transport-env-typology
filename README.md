@@ -20,11 +20,9 @@ The project follows four stages:
 | [OS NGD](https://www.ordnancesurvey.co.uk/products/os-ngd-api-features) | Road network (links, nodes), speed limits, average speeds, cycle/highway dedication | Manual download to `data/download/` |
 | [DfT Road Traffic Statistics API](https://roadtraffic.dft.gov.uk/api) | Average Annual Daily Flow (AADF) per count point | API (Sheffield LA ID: 159) |
 | [NaPTAN](https://www.data.gov.uk/dataset/naptan) | Bus stop locations (ATCO area 370 — South Yorkshire) | API |
-| [IMD 2019](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2019) | Index of Multiple Deprivation scores, ranks and deciles | Download |
+| [IMD 2025](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025) | Index of Multiple Deprivation scores, ranks and deciles | API |
 | [Census 2021 (NOMIS)](https://www.nomisweb.co.uk/sources/census_2021_bulk) | Population density (TS006), car availability (TS045), economic activity (TS066), industry (TS060) | API |
-| [ONS Open Geography Portal](https://geoportal.statistics.gov.uk/) | 2011 LSOA boundaries for Sheffield | API |
-
-> **Note on LSOA codes**: LSOA boundaries use 2011 codes (LSOA11CD), which align with IMD 2019. Census 2021 data uses 2021 codes (LSOA21CD). An ONS lookup is required to reconcile a small number of split/merged LSOAs.
+| [ONS Open Geography Portal](https://geoportal.statistics.gov.uk/) | 2021 LSOA boundaries for Sheffield | API |
 
 ## Project Structure
 
@@ -33,6 +31,7 @@ The project follows four stages:
 ├── R/
 │   ├── ingest.R       # Functions to acquire raw data (API calls and file paths)
 │   └── process.R      # Functions to aggregate each source to LSOA level
+│   └── viz.R          # Functions to help with visualisations
 ├── _targets.R         # Targets pipeline definition
 ├── data.qmd           # Data preparation report (Quarto)
 ├── proposal.qmd       # Project proposal (Quarto)
@@ -40,6 +39,7 @@ The project follows four stages:
     ├── download/      # Manually downloaded files (OS NGD, city boundary)
     ├── boundaries/    # Derived boundary files
     └── raw/           # API-sourced raw data files
+    └── sheffield_transport_datasets.xlsx # Spreadsheet listing raw and processed datasets
 ```
 
 The `data/` and `_targets/` directories are excluded from version control.
@@ -66,7 +66,7 @@ Key pipeline targets include:
 | `df_lsoa_traffic` | Mean AADF (all vehicles, cars, buses, cycles) per LSOA |
 | `df_lsoa_bus_stops` | Bus stop count and density per LSOA |
 | `df_lsoa_city_centre_dist` | Straight-line distance to Sheffield city centre per LSOA |
-| `df_lsoa_imd` | IMD 2019 score, rank, decile and sub-domain scores per LSOA |
+| `sf_lsoa_imd` | IMD 2025 rank and decile per LSOA |
 | `df_lsoa_population` | Population density per LSOA (Census 2021) |
 | `df_lsoa_cars` | Car/van availability per LSOA (Census 2021) |
 | `df_lsoa_economic_activity` | Unemployment rate per LSOA (Census 2021) |
@@ -83,10 +83,10 @@ The raw data files are excluded from this repository. Sources and their terms ar
 
 | Source | Licence / Terms |
 |--------|----------------|
-| OS NGD (road network, speed, cycling infrastructure) | Contains OS data © Crown copyright and database right 2024. Available to public sector organisations via the [Public Sector Geospatial Agreement (PSGA)](https://www.ordnancesurvey.co.uk/customers/public-sector/public-sector-geospatial-agreement). Not redistributable. |
+| OS NGD (road network, speed, cycling infrastructure) | Contains OS data © Crown copyright and database right 2026. Available to public sector organisations via the [Public Sector Geospatial Agreement (PSGA)](https://www.ordnancesurvey.co.uk/customers/public-sector/public-sector-geospatial-agreement). Not redistributable. |
 | DfT Road Traffic Statistics | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
 | NaPTAN (bus stops) | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
-| IMD 2019 | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
+| IMD 2025 | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
 | Census 2021 (NOMIS) | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) — Contains National Statistics data © Crown copyright and database right 2026 |
 | ONS Open Geography Portal (LSOA boundaries) | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) — Contains OS data © Crown copyright and database right 2026 |
 
@@ -99,6 +99,7 @@ install.packages(c(
   "targets", "tarchetypes",
   "tidyverse", "sf", "here",
   "httr", "jsonlite",
-  "gt", "gtExtras", "readxl"
+  "gt", "gtExtras", "readxl",
+  "leaflet", "osdatahub"
 ))
 ```
