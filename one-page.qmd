@@ -1,0 +1,65 @@
+---
+title: "Neighbourhood Transport Environment Typology"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+  docx:
+    toc: false 
+    reference-doc: resources/reference-one-page.docx
+execute:
+  warning: false
+  message: false
+---
+
+The Neighbourhood Transport Environment Typology (NTET) will provide a common evidence base for transport planning, regeneration, climate policy, and public health interventions across the city.  
+
+::::: {layout-ncol=2}
+
+::: {.column width="45%"}
+
+For example:  
+
+**LSOA** &nbsp;&nbsp;&nbsp;&nbsp;**NTET Group**  
+Area A &nbsp;&nbsp;&nbsp;Car-Dependent Suburb  
+Area B &nbsp;&nbsp;&nbsp;Car-Dependent Suburb  
+Area C &nbsp;&nbsp;&nbsp;Industrial Employment Hub  
+Area D &nbsp;&nbsp;&nbsp;Peripheral Community  
+
+:::
+
+::: {.column width="55%"}
+
+Main deliverables:  
+&nbsp;  
+a) A city-wide map showing the transport type of every neighbourhood (343 LSOAs).  
+b) A profile describing each type.  
+c) Statistics showing how neighbourhoods differ across the types.  
+
+:::
+
+:::::
+
+NTET is a simplification tool, it allows a stakeholder to move from analysing hundreds of neighbourhoods individually to understanding a handful of meaningful place types. Instead of asking *"What transport intervention does every LSOA need?"*, they can ask *"What interventions work best for Car-Dependent Suburbs?"* or *"Which Peripheral Communities have similar accessibility challenges?"*. NTET allows neighbourhoods to be compared with genuinely similar places rather than against city-wide averages.
+
+The council has previously paid to use similar geodemographic segmentation products called [Acorn](https://acorn.caci.co.uk/) and [Mosaic](https://www.experian.co.uk/business/platforms/mosaic). All three answer the same broad question i.e. *"What kind of place is this?"* The difference is the lens through which they classify places. Acorn and Mosaic classify people and places for marketing and service design, whereas NTET classifies neighbourhoods for transport planning and policy design.  
+
+A practical example could be how to prioritise cycling investment. Without NTET we would review each neighbourhood individually, create bespoke analysis for each area, and it would be difficult to compare places consistently. With NTET we identify which transport environment types have low cycling infrastructure and short trip patterns, target those classes first, and can assess whether interventions work differently by neighbourhood type. 
+ 
+NTET is not intended to be an end product. It will be an analytical asset that can be reused across multiple projects. 
+
+A secondary, but potentially equally valuable use, is that NTET could become a foundational dataset used in future models. For example, EV charging planning, or climate and decarbonisation work.
+
+In summary: *NTET is a city-wide classification of neighbourhoods, similar to Acorn or Mosaic, but focused on transport. It provides a common framework used to compare similar places, target interventions, benchmark outcomes, and support future analytical models.*  

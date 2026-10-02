@@ -1,6 +1,6 @@
 # Neighbourhood Transport Environment Typology
 
-An unsupervised machine learning project that classifies Sheffield's 345 Lower Super Output Areas (LSOAs) into transport environment types using publicly available data.
+An unsupervised machine learning project that classifies Sheffield's 343 Lower Super Output Areas (LSOAs) into transport environment types using publicly available data.
 
 The resulting typology — the **Neighbourhood Transport Environment Typology (NTET)** — provides a common evidence base for transport planning, regeneration, climate policy, and public health interventions across the city.
 
@@ -33,8 +33,9 @@ The project follows four stages:
 │   └── process.R      # Functions to aggregate each source to LSOA level
 │   └── viz.R          # Functions to help with visualisations
 ├── _targets.R         # Targets pipeline definition
-├── data.qmd           # Data preparation report (Quarto)
-├── proposal.qmd       # Project proposal (Quarto)
+├── one-page.qmd       # Summary of what & why? (Quarto to HTML & .docx)
+├── proposal.qmd       # Project proposal include how? (Quarto to HTML)
+├── data.qmd           # Data preparation report (Quarto to HTML)
 └── data/
     ├── download/      # Manually downloaded files (OS NGD, city boundary)
     ├── boundaries/    # Derived boundary files

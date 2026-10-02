@@ -63,7 +63,7 @@ The council has previously used similar geodemographic classification products c
 
 ## Research Question
 
-> Can unsupervised machine learning techniques be used to develop a robust and interpretable typology of Sheffield neighbourhoods based on transport, demographic and environmental characteristics, and how could such a typology support place-based policy and investment decisions?  
+> Can Sheffield neighbourhoods be classified into a small number of meaningful transport environment types that improve understanding, comparison and targeting of transport policies and interventions?
 
 ## Objectives
 
@@ -78,7 +78,7 @@ The council has previously used similar geodemographic classification products c
 
 ## Study Geography
 
-The preferred unit of analysis is the 345 Lower Super Output Areas (LSOA), providing a balance between geographical detail and interpretability.  
+The preferred unit of analysis is the 343 Lower Super Output Areas (LSOA), providing a balance between geographical detail and interpretability.  
 
 Alternative Sheffield geographies are neighbourhoods (100), MSOAs (70), or Wards (28). 
 

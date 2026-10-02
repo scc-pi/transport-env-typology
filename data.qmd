@@ -45,6 +45,7 @@ tar_source()
 
 # Pull any pre-computed targets we need
 tar_load(sf_city)
+tar_load(sf_lsoa)
 
 # ggplot theme
 set_theme(theme_minimal())
