@@ -105,7 +105,7 @@ get_raw_count <- function() {
 
 # **** IMD 2025 ****
 
-get_lsoa_imd <- function() {
+get_imd <- function() {
   # Indices of Deprivation 2025 at LSOA level for Sheffield
   # MHCLG GeoPortal
   # Source: https://www.arcgis.com/home/item.html?id=0fddc254c1184386bbeed27ed49bbd03#overview

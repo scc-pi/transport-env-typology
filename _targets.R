@@ -82,8 +82,8 @@ list(
   # **** IMD 2025 ****
 
   tar_target(
-    sf_lsoa_imd,
-    get_lsoa_imd()
+    sf_imd,
+    get_imd()
   ),
 
   # **** NaPTAN (bus stops) ****
@@ -179,6 +179,12 @@ list(
     df_lsoa_city_centre_dist,
     process_lsoa_city_centre_dist(sf_lsoa)
   ),
+  
+  # Deprivation
+  tar_target(
+    df_lsoa_imd,
+    process_lsoa_imd(sf_imd)
+  ),
 
   # Bus stops (NaPTAN)
   tar_target(
@@ -200,6 +206,35 @@ list(
   tar_target(
     df_lsoa_economic_activity,
     process_lsoa_economic_activity(df_census_economic_activity)
-  )
+  ),
+  
+  # **** Assemble ****
+  
+  # Different indicators are assembled into a single data frame with LSOA21CD
+  # as key. One row per LSOA and one column per indicator. 
 
+  # All indicators 
+  tar_target(
+    df_lsoa_all,
+    assemble_lsoa_all(
+      sf_lsoa,
+      df_lsoa_road_network, 
+      df_lsoa_speed, 
+      df_lsoa_cycling,
+      df_lsoa_traffic, 
+      df_lsoa_city_centre_dist, 
+      df_lsoa_imd,
+      df_lsoa_bus_stops,
+      df_lsoa_population, 
+      df_lsoa_cars, 
+      df_lsoa_economic_activity
+    )
+  ),
+  
+  # Only the indicators we're using for clustering
+  tar_target(
+    df_lsoa,
+    assemble_lsoa(df_lsoa_all)
+  )
+  
 )

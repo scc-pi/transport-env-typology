@@ -43,17 +43,11 @@ library(readxl)
 # Sources all R/*.R same as _targets.R
 tar_source()       
 
-# Pull any pre-computed targets we need
-tar_load(sf_city)
-tar_load(sf_lsoa)
-
 # ggplot theme
 set_theme(theme_minimal())
 ```
 
 # Assemble datasets  
-
-## Ingest
 
 ```{r}
 #| label: tbl-ingest
@@ -86,7 +80,10 @@ df_ingested |>
   ")
 ```
 
-## Process
+::: {.callout-note}
+## Decision  
+For spatial data (data frame with an `sf_` prefix) BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
+:::
 
 ```{r}
 #| label: tbl-process
@@ -111,13 +108,71 @@ df_processed |>
   cols_label(Row = "")
 ```
 
-Note: `sf_lsoa_imd` ingested at LSOA level courtesy of MHCLG (see @tbl-ingest).
+The different indicators are assembled into a single data frame. `LSOA21CD` is the key, and there's one row per LSOA and one column per indicator.  
 
-## Spatial data  
+```{r}
+#| label: df-lsoa-all
 
-BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
+# Load data frame of all LSOA indicators
+tar_load(df_lsoa_all)
+
+glimpse(df_lsoa_all)
+```
 
 # Handle missing values
+
+```{r}
+#| label: tbl-missing
+#| tbl-cap: "Missing values by indicator"
+
+df_lsoa_all |>
+  summarise(across(everything(), ~sum(is.na(.)))) |>
+  pivot_longer(everything(), names_to = "Indicator", values_to = "n_missing") |>
+  filter(n_missing > 0) |>
+  mutate(pct_missing = round(n_missing / nrow(df_lsoa_all) * 100, 1)) |>
+  arrange(desc(n_missing)) |>
+  my_gt() |>
+  cols_label(n_missing = "Missing (n)", pct_missing = "Missing (%)")
+```
+
+The five DfT traffic indicators (`count_point_n`, `mean_aadf_*`) are missing for `r sum(is.na(df_lsoa_all$count_point_n))` of `r nrow(df_lsoa_all)` LSOAs (78%). DfT count points are placed on strategic roads. Most residential LSOAs simply have no count point within their boundary, so `NA` genuinely means *unmeasured*, not zero.
+
+```{r}
+#| label: fig-count-coverage
+#| fig-cap: "LSOAs with and without a DfT traffic count point"
+
+tar_load(sf_lsoa)
+
+sf_lsoa |>
+  left_join(df_lsoa_all |> select(LSOA21CD, count_point_n), by = "LSOA21CD") |>
+  mutate(has_traffic = !is.na(count_point_n)) |>
+  ggplot() +
+  geom_sf(aes(fill = has_traffic), linewidth = 0.1, colour = "white") +
+  scale_fill_manual(
+    values = c("TRUE" = "#2166ac", "FALSE" = "#d1d5db"),
+    labels = c("TRUE" = "Count point present", "FALSE" = "No count point")
+  ) +
+  labs(fill = NULL) +
+  theme_void()
+```
+
+The spatial pattern reflects the arterial road network: LSOAs that contain or border a major road are likely to be covered, while many residential LSOAs are not.
+
+::: {.callout-note}
+## Decision  
+We're going to run clustering without the DfT indicators. The OS NGD speed metrics and road network characteristics will carry most of the transport environment signal. The DfT indicators would contribute little given their sparse spatial coverage. An alternative is to impute missing traffic values, for example by using the median of the five nearest neighbouring LSOAs (by centroid distance). The DfT targets are retained as they may be reusable if we switch to a spatial denominator larger than LSOAs.   
+:::
+
+The single data frame we'll use for clsutering has fewer columns and is called `df_lsoa`.  
+
+```{r}
+#| label: df-lsoa
+
+# Load data frame of LSOA indicators we're going to use for clsutering
+tar_load(df_lsoa)
+
+glimpse(df_lsoa)
+```
 
 # Standardise variables
 

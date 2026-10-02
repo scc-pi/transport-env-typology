@@ -31,6 +31,7 @@ The project follows four stages:
 ├── R/
 │   ├── ingest.R       # Functions to acquire raw data (API calls and file paths)
 │   └── process.R      # Functions to aggregate each source to LSOA level
+│   └── assemble.R     # Functions to assemble indicators to a single data frame
 │   └── viz.R          # Functions to help with visualisations
 ├── _targets.R         # Targets pipeline definition
 ├── one-page.qmd       # Summary of what & why? (Quarto to HTML & .docx)

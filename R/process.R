@@ -224,6 +224,20 @@ process_lsoa_city_centre_dist <- function(sf_lsoa) {
     dplyr::select(LSOA21CD, dist_city_centre_km)
 }
 
+
+# *** Deprivation (MHCLG) ****
+
+# Returns a data frame (one row per LSOA) with IMD 2025 decile and rank
+process_lsoa_imd <- function(sf_imd) {
+  sf_imd |>
+    sf::st_drop_geometry() |>
+    dplyr::select(
+      LSOA21CD, 
+      imd_rand = IMDRank,
+      imd_decile = IMDDecil
+    )
+}
+
 # **** Bus stops (NaPTAN) ****
 
 # Returns a data frame (one row per LSOA) with bus stop count and density
