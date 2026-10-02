@@ -82,7 +82,7 @@ df_ingested |>
 
 ::: {.callout-note}
 ## Decision  
-For spatial data (data frame with an `sf_` prefix) BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
+For spatial data (data frames with an `sf_` prefix) BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
 :::
 
 ```{r}
@@ -143,32 +143,47 @@ The five DfT traffic indicators (`count_point_n`, `mean_aadf_*`) are missing for
 
 tar_load(sf_lsoa)
 
-sf_lsoa |>
+sf_lsoa_count_point <- sf_lsoa |>
+  st_transform(4326) |>
   left_join(df_lsoa_all |> select(LSOA21CD, count_point_n), by = "LSOA21CD") |>
-  mutate(has_traffic = !is.na(count_point_n)) |>
-  ggplot() +
-  geom_sf(aes(fill = has_traffic), linewidth = 0.1, colour = "white") +
-  scale_fill_manual(
-    values = c("TRUE" = "#2166ac", "FALSE" = "#d1d5db"),
-    labels = c("TRUE" = "Count point present", "FALSE" = "No count point")
-  ) +
-  labs(fill = NULL) +
-  theme_void()
+  mutate(
+    has_traffic = !is.na(count_point_n),
+    fill_colour = if_else(has_traffic, "#2166ac", "#ff964f")
+  )
+
+bb <- sf_lsoa_count_point |> st_bbox()
+
+make_basemap() |>
+  fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]]) |>
+  addPolygons(
+    data        = sf_lsoa_count_point,
+    fillColor   = ~fill_colour,
+    fillOpacity = 0.6,
+    color       = "white",
+    weight      = 0.5,
+    smoothFactor = 0.5
+  ) |>
+  addLegend(
+    position = "topright",
+    colors   = c("#2166ac", "#ff964f"),
+    labels   = c("Count point present", "No count point"),
+    opacity  = 0.6,
+    title    = NULL
+  )
 ```
 
-The spatial pattern reflects the arterial road network: LSOAs that contain or border a major road are likely to be covered, while many residential LSOAs are not.
+The spatial pattern reflects a combination of the arterial road network and geographically large LSOAs in the Peak District (LSOAs cover approximately equal population sizes rather than equal geographic sizes).
 
 ::: {.callout-note}
 ## Decision  
 We're going to run clustering without the DfT indicators. The OS NGD speed metrics and road network characteristics will carry most of the transport environment signal. The DfT indicators would contribute little given their sparse spatial coverage. An alternative is to impute missing traffic values, for example by using the median of the five nearest neighbouring LSOAs (by centroid distance). The DfT targets are retained as they may be reusable if we switch to a spatial denominator larger than LSOAs.   
 :::
 
-The single data frame we'll use for clsutering has fewer columns and is called `df_lsoa`.  
+The data frame we'll use for clustering is called `df_lsoa` and is a subset of all the indicators we've processed.    
 
 ```{r}
 #| label: df-lsoa
 
-# Load data frame of LSOA indicators we're going to use for clsutering
 tar_load(df_lsoa)
 
 glimpse(df_lsoa)

@@ -1,6 +1,6 @@
 ---
-title: "Neighbourhood Transport Environment Typology"
-subtitle: "Proposal"
+title: "Proposal"
+subtitle: "Neighbourhood Transport Environment Typology"
 author: "Laurie Platt"
 date: last-modified
 date-format: "[Last updated ] DD MMMM, YYYY"
