@@ -188,17 +188,3 @@ tar_load(df_lsoa)
 
 glimpse(df_lsoa)
 ```
-
-# Standardise variables
-
-# Explore distributions
-  
-  
-```{r}
-#| label: city-boundary
-
-make_basemap() 
-```
-  
-# Examine correlations
-

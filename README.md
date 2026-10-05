@@ -102,6 +102,6 @@ install.packages(c(
   "tidyverse", "sf", "here",
   "httr", "jsonlite",
   "gt", "gtExtras", "readxl",
-  "leaflet", "osdatahub"
+  "leaflet", "osdatahub", "tidymodels"
 ))
 ```

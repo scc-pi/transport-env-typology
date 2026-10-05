@@ -1,0 +1,124 @@
+---
+title: "Feature Engineering"
+subtitle: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+---
+
+We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our machine learning (ML) pipeline. 
+
+```{r setup}
+
+# Packages
+library(tidyverse)
+library(here)
+library(targets)
+library(gt)
+library(gtExtras)
+library(sf)
+library(leaflet)
+library(osdatahub)
+library(tidymodels)
+
+# Sources all R/*.R same as _targets.R
+tar_source()       
+
+# ggplot theme
+set_theme(theme_minimal())
+```
+
+The data frame we'll use for clustering is called `df_lsoa` and is a subset of all the indicators we've processed.    
+
+```{r}
+#| label: df-lsoa
+
+tar_load(df_lsoa)
+
+glimpse(df_lsoa)
+```
+
+# Standardise variables
+
+```{r}
+#| label: standardise
+#| eval: false 
+
+
+rec_lsoa <- recipe(~ ., data = df_lsoa_all) |>
+
+  # LSOA identifier (retain but exclude from modelling)
+  update_role(LSOA21CD, new_role = "id") |>
+
+  # Remove traffic-count variables
+  # Coverage is only a fifth of LSOAs, so these are unlikely to be useful
+  # for city-wide clustering.
+  step_rm(
+    count_point_n,
+    mean_aadf_all,
+    mean_aadf_cars,
+    mean_aadf_buses,
+    mean_aadf_cycles
+  ) |>
+
+  # Remove zero-variance predictors
+  step_zv(all_numeric_predictors()) |>
+
+  # Impute any remaining missing values
+  step_impute_median(all_numeric_predictors()) |>
+
+  # Standardise all predictors to mean = 0, sd = 1
+  step_normalize(all_numeric_predictors()) |>
+
+  # Remove highly correlated variables
+  step_corr(
+    all_numeric_predictors(),
+    threshold = 0.90
+  )
+
+# Prepare recipe
+rec_lsoa_prep <- prep(rec_lsoa)
+
+# Create clustering dataset
+df_cluster <- bake(
+  rec_lsoa_prep,
+  new_data = NULL
+)
+
+# Predictor matrix for clustering
+x_cluster <- df_cluster |>
+  select(-LSOA21CD)
+
+```
+
+
+# Explore distributions
+  
+  
+```{r}
+#| label: city-boundary
+
+make_basemap() 
+```
+  
+# Examine correlations
+

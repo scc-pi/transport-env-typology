@@ -1,0 +1,369 @@
+---
+title: "ONS LSOA Classification"
+subtitle: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+---
+
+```{r setup}
+
+# Packages
+library(tidyverse)
+library(here)
+library(targets)
+library(gt)
+library(gtExtras)
+library(sf)
+library(leaflet)
+library(writexl)
+
+# Sources all R/*.R same as _targets.R
+tar_source()       
+
+# ggplot theme
+set_theme(theme_minimal())
+```
+
+This is a brief exploration of the ONS residential-based LSOA classifications^[ONS 2021 and 2022 residential-based area classifications ([www.ons.gov.uk/methodology/geography/geographicalproducts/areaclassifications/2021and2022residentialbasedareaclassifications#super-output-area-classification-uk-](https://www.ons.gov.uk/methodology/geography/geographicalproducts/areaclassifications/2021and2022residentialbasedareaclassifications#super-output-area-classification-uk-))], hosted by the Geographic Data Service^[GeoDS - UK LSOA / DZ / SDZ Classification (2021/2 LSOAC) ([data.geods.ac.uk/dataset/lsoac](https://data.geods.ac.uk/dataset/lsoac))] (March 2021 to March 2022).  
+
+```{r}
+#| label: tbl-oac-etl
+#| tbl-cap: "Sample of Sheffield LSOA classifications"
+
+# Sheffield LSOAs already available 
+tar_load(sf_lsoa)
+
+# **** Read manual downloads ****
+
+# File with classifications for all UK LSOAs
+df_oac_all <- read_csv(
+  here(
+    "data", "download", "oac", 
+    "lsoa_dz_sdz_lookup.csv"
+  )
+)
+
+# File with names for different classification codes
+df_oac_names <- read_csv(
+  here(
+    "data", "download", "oac", 
+    "classification_codes_and_names_ukoac_lsoac.csv")
+)
+
+# Only interested in Sheffield LSOA classifications
+sf_oac <- sf_lsoa |> 
+  left_join(df_oac_all, join_by(LSOA21CD == geography_code))
+
+# **** Work towards a wide data set of classification code and names ****
+
+df_oac_names_subgroup <- df_oac_names |> 
+  filter(Level == "Subgroup") |> 
+  mutate(
+    supergroup_code = str_sub(`Classification Code`, 1, 1),
+    group_code = str_sub(`Classification Code`, 1, 2)
+  ) |> 
+  select(
+    supergroup_code,
+    group_code,
+    subgroup_code = `Classification Code`,
+    subgroup_name = `Classification Name`
+  )
+
+df_oac_names_group <- df_oac_names |> 
+  filter(Level == "Group") |> 
+  select(
+    group_code = "Classification Code",
+    group_name = "Classification Name"
+  )
+
+df_oac_names_supergroup <- df_oac_names |> 
+  filter(Level == "Supergroup") |> 
+  select(
+    supergroup_code = "Classification Code",
+    supergroup_name = "Classification Name"
+  )
+
+df_oac_names_wide <- df_oac_names_subgroup |> 
+  left_join(df_oac_names_group, join_by(group_code)) |> 
+  left_join(df_oac_names_supergroup, join_by(supergroup_code)) |> 
+  relocate(group_name, .after = group_code) |> 
+  relocate(supergroup_name, .after = supergroup_code)
+
+# Add the classification names to Sheffield LSOA classifications
+sf_oac <- sf_oac |> 
+  left_join(df_oac_names_wide, join_by(Subgroup == subgroup_code)) |> 
+  rename(subgroup_code = Subgroup) |> 
+  select(-Group, -Supergroup)
+
+# No spatial list
+df_oac <- sf_oac |> 
+  st_drop_geometry() |> 
+  select(
+    LSOA21CD,
+    LSOA21NM,
+    supergroup_code,
+    supergroup_name,
+    group_code,
+    group_name,
+    subgroup_code,
+    subgroup_name
+  )
+
+# Export the Sheffield LSOA classifications to a spreadsheet
+df_oac |> write_xlsx(here("output", "ons_oac.xlsx"))
+
+# Table of 6 random records
+set.seed(123)
+df_oac |> 
+  slice_sample(n = 6) |> 
+  my_gt() |> 
+  tab_style(
+    style = cell_fill(color = "#D9EAD3"),
+    locations = cells_body(columns = 1:2)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#DCEAF7"),
+    locations = cells_body(columns = 3:4)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#B6D7F0"),
+    locations = cells_body(columns = 5:6)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#6FA8DC"),
+    locations = cells_body(columns = 7:8)
+  )
+```
+
+Pen portraits of the classifications are available in a PDF: [pen_portraits_ukoac_0.pdf](/resources/pen_portraits_ukoac_0.pdf) 
+
+```{r}
+#| label: fig-map
+#| fig-cap: "Sheffield LSOA ONS classifications"
+#| column: page
+#| fig-height: 6
+
+# Re-project for leaflet
+sf_oac <- sf_oac |> 
+  st_transform(4326) |> 
+  mutate(supergroup_code = as.integer(supergroup_code))
+
+# Palettes
+pal_sg  <- colorNumeric(palette = "Oranges", domain = sf_oac$supergroup_code)
+pal_grp <- colorFactor(
+  palette = colorRampPalette(RColorBrewer::brewer.pal(12, "Paired"))(20),
+  domain  = sf_oac$group_code
+)
+
+# Bounding box
+bb <- sf_oac |> st_bbox()
+
+# Legend label lookups
+sg_lookup <- sf_oac |>
+  st_drop_geometry() |>
+  distinct(supergroup_code, supergroup_name) |>
+  arrange(supergroup_code) |>
+  mutate(label = paste(supergroup_code, supergroup_name, sep = ". "))
+
+grp_lookup <- sf_oac |>
+  st_drop_geometry() |>
+  distinct(group_code, group_name) |>
+  arrange(group_code) |>
+  mutate(label = paste(group_code, group_name, sep = " - "))
+
+# Shared popup
+popup_html <- ~paste0(
+  "<b>", LSOA21CD, "</b> ", LSOA21NM, "<br>",
+  "<b>Supergroup:</b> ", supergroup_code, " - ", supergroup_name, "<br>",
+  "<b>Group:</b> ", group_code, " - ", group_name, "<br>",
+  "<b>Subgroup:</b> ", subgroup_code, " - ", subgroup_name
+)
+
+# Leaflet map
+make_basemap() |>
+  fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]]) |>
+  addPolygons(
+    data         = sf_oac,
+    group        = "Supergroup",
+    smoothFactor = 0.2,
+    fillOpacity  = 0.5,
+    fillColor    = ~pal_sg(supergroup_code),
+    color        = "black",
+    weight       = 0.4,
+    popup        = popup_html
+  ) |>
+  addPolygons(
+    data         = sf_oac,
+    group        = "Group",
+    smoothFactor = 0.2,
+    fillOpacity  = 0.5,
+    fillColor    = ~pal_grp(group_code),
+    color        = "black",
+    weight       = 0.4,
+    popup        = popup_html
+  ) |>
+  addLayersControl(
+    baseGroups = c("Supergroup", "Group"),
+    options    = layersControlOptions(collapsed = FALSE)
+  ) |>
+  hideGroup("Group") |>
+  addLegend(
+    position  = "topright",
+    colors    = pal_sg(sg_lookup$supergroup_code),
+    labels    = sg_lookup$label,
+    opacity   = 0.6,
+    title     = "Supergroup",
+    className = "info legend legend-supergroup"
+  ) |>
+  addLegend(
+    position  = "topright",
+    colors    = pal_grp(grp_lookup$group_code),
+    labels    = grp_lookup$label,
+    opacity   = 0.6,
+    title     = "Group",
+    className = "info legend legend-group"
+  ) |>
+  htmlwidgets::onRender(sprintf("
+    function(el, x) {
+      var map = this;
+      // Re-fit bounds with right padding to keep polygons clear of the legend
+      map.fitBounds([[%f, %f], [%f, %f]], {paddingBottomRight: [260, 0]});
+      // Hide group legend on load
+      var grpLegend = document.querySelector('.legend-group');
+      if (grpLegend) grpLegend.style.display = 'none';
+      // Toggle legends when the base layer changes
+      map.on('baselayerchange', function(e) {
+        var sgLegend  = document.querySelector('.legend-supergroup');
+        var grpLegend = document.querySelector('.legend-group');
+        if (e.name === 'Supergroup') {
+          if (sgLegend)  sgLegend.style.display  = 'block';
+          if (grpLegend) grpLegend.style.display = 'none';
+        } else {
+          if (sgLegend)  sgLegend.style.display  = 'none';
+          if (grpLegend) grpLegend.style.display = 'block';
+        }
+      });
+    }
+  ", bb[["ymin"]], bb[["xmin"]], bb[["ymax"]], bb[["xmax"]]))
+```
+
+```{r}
+#| label: oac-xlsx-gpkg
+
+# Export the Sheffield LSOA classifications to a spreadsheet
+df_oac |> write_xlsx(here("output", "ons_oac_sheffield.xlsx"))
+
+# And a geopackage
+sf_oac |> st_write(
+  dsn = "output/ons_oac_sheffield.gpkg", 
+  layer="ons_oac", 
+  delete_layer = TRUE, 
+  quiet = TRUE
+)
+```
+
+The data filtered for Sheffield LSOA is available as a spreadsheet and a geopackage:  
+
+* [ons_oac_sheffield.xlsx](/output/ons_oac_sheffield.xlsx)  
+* [ons_oac_sheffield.gpkg](/output/ons_oac_sheffield.gpkg)   
+
+*Source: Geographic Data Service licensed under the Open Government Licence v3.0.*
+
+Not all ONS classifications are present in Sheffield.  
+
+```{r}
+#| label: tbl-oac-distinct
+#| tbl-cap: "Number of distinct classifications"
+
+df_oac_distinct_ons <- df_oac_names_wide |> 
+  summarise(
+    classifications = "All ONS",
+    n_supergroup = n_distinct(supergroup_code),
+    n_group = n_distinct(group_code),
+    n_subgroup = n_distinct(subgroup_code)
+  )
+
+df_oac_distinct_sheff <- df_oac |> 
+  summarise(
+    classifications = "Sheffield LSOAs",
+    n_supergroup = n_distinct(supergroup_code),
+    n_group = n_distinct(group_code),
+    n_subgroup = n_distinct(subgroup_code)
+  )
+
+df_oac_distinct_ons |> 
+  bind_rows(df_oac_distinct_sheff) |> 
+  my_gt() |> 
+  fmt(
+    columns = where(is.numeric),
+    fns = function(x) {format(round(x, 0), nsmall = 0, big.mark = ",")}
+  )
+```
+
+```{r}
+#| label: tbl-oac-group-not-sheff
+#| tbl-cap: "Group classification not in Sheffield"
+
+df_oac_names_wide |> 
+  anti_join(df_oac, join_by(group_code)) |> 
+  distinct(
+    group_code, group_name, 
+    supergroup_code, supergroup_name
+  ) |> 
+  my_gt() |> 
+  tab_style(
+    style = cell_fill(color = "#B6D7F0"),
+    locations = cells_body(columns = 1:2)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#DCEAF7"),
+    locations = cells_body(columns = 3:4)
+  )
+```
+
+```{r}
+#| label: tbl-oac-subgroup-not-sheff
+#| tbl-cap: "Sub group classifications not in Sheffield"
+
+df_oac_names_wide |> 
+  anti_join(df_oac, join_by(subgroup_code)) |> 
+  select(
+    subgroup_code, subgroup_name, 
+    group_code, group_name, 
+    supergroup_code, supergroup_name
+  ) |> 
+  my_gt() |>
+  tab_style(
+    style = cell_fill(color = "#6FA8DC"),
+    locations = cells_body(columns = 1:2)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#B6D7F0"),
+    locations = cells_body(columns = 3:4)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#DCEAF7"),
+    locations = cells_body(columns = 5:6)
+  )
+
+```
