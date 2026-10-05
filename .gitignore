@@ -58,3 +58,5 @@ _targets/
 *.html
 *_files/
 *.docx
+/.quarto/
+**/*.quarto_ipynb

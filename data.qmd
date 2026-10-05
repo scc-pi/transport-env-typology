@@ -47,7 +47,7 @@ tar_source()
 set_theme(theme_minimal())
 ```
 
-# Assemble datasets  
+# Source    
 
 ```{r}
 #| label: tbl-ingest
@@ -85,6 +85,8 @@ df_ingested |>
 For spatial data (data frames with an `sf_` prefix) BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
 :::
 
+# Process
+
 ```{r}
 #| label: tbl-process
 #| tbl-cap: "Data processed (via `_targets.R` & `R\\process.R`)"
@@ -108,6 +110,8 @@ df_processed |>
   cols_label(Row = "")
 ```
 
+# Assemble  
+
 The different indicators are assembled into a single data frame. `LSOA21CD` is the key, and there's one row per LSOA and one column per indicator.  
 
 ```{r}
@@ -119,7 +123,7 @@ tar_load(df_lsoa_all)
 glimpse(df_lsoa_all)
 ```
 
-# Handle missing values
+# Missing values
 
 ```{r}
 #| label: tbl-missing
@@ -178,6 +182,8 @@ The spatial pattern reflects a combination of the arterial road network and geog
 ## Decision  
 We're going to run clustering without the DfT indicators. The OS NGD speed metrics and road network characteristics will carry most of the transport environment signal. The DfT indicators would contribute little given their sparse spatial coverage. An alternative is to impute missing traffic values, for example by using the median of the five nearest neighbouring LSOAs (by centroid distance). The DfT targets are retained as they may be reusable if we switch to a spatial denominator larger than LSOAs.   
 :::
+
+# Data for clustering
 
 The data frame we'll use for clustering is called `df_lsoa` and is a subset of all the indicators we've processed.    
 

@@ -1,0 +1,20 @@
+project:
+  type: website
+  output-dir: docs
+  # resources:
+  #   - report_traffic_flow.pdf
+
+website:
+  title: "Neighbourhood Transport Environment Typology"
+  navbar:
+    right:
+      - icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+        aria-label: GitHub
+
+format:
+  html:
+    theme: cosmo
+
+execute:
+  freeze: auto
