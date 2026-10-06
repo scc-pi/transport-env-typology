@@ -25,9 +25,7 @@ execute:
   message: false
 ---
 
-We're using 
-
-We're using the {tidymodels}^[{tidymodels} ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. ??tidyclust
+We're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. In particular, we're using the {tidyclust}^[{tidyclust} R package ([tidyclust.tidymodels.org](https://tidyclust.tidymodels.org/index.html))] R package.
 
 ```{r setup}
 
@@ -98,7 +96,6 @@ df_cluster <- bake(
 # Predictor matrix for clustering
 x_cluster <- df_cluster |>
   select(-LSOA21CD)
-
 ```
 
 

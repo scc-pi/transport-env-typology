@@ -155,7 +155,7 @@ df_oac |>
   )
 ```
 
-Pen portraits of the classifications are available in a PDF: [pen_portraits_ukoac_0.pdf](/resources/pen_portraits_ukoac_0.pdf) 
+Pen portraits of the classifications are available in a PDF: [pen_portraits_ukoac_0.pdf](resources/pen_portraits_ukoac_0.pdf) 
 
 ```{r}
 #| label: fig-map
@@ -284,8 +284,8 @@ sf_oac |> st_write(
 
 The data filtered for Sheffield LSOA is available as a spreadsheet and a geopackage:  
 
-* [ons_oac_sheffield.xlsx](/output/ons_oac_sheffield.xlsx)  
-* [ons_oac_sheffield.gpkg](/output/ons_oac_sheffield.gpkg)   
+* [ons_oac_sheffield.xlsx](output/ons_oac_sheffield.xlsx)  
+* [ons_oac_sheffield.gpkg](output/ons_oac_sheffield.gpkg)   
 
 *Source: Geographic Data Service licensed under the Open Government Licence v3.0.*
 
