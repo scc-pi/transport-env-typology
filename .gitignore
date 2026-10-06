@@ -51,7 +51,7 @@ rsconnect/
 *.Rproj
 .positai
 
-data/
+/data/
 _targets/
 *.txt
 .copilot
