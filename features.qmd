@@ -25,7 +25,9 @@ execute:
   message: false
 ---
 
-We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our machine learning (ML) pipeline. 
+We're using 
+
+We're using the {tidymodels}^[{tidymodels} ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. ??tidyclust
 
 ```{r setup}
 
@@ -64,21 +66,10 @@ glimpse(df_lsoa)
 #| eval: false 
 
 
-rec_lsoa <- recipe(~ ., data = df_lsoa_all) |>
+rec_lsoa <- recipe(~ ., data = df_lsoa) |>
 
   # LSOA identifier (retain but exclude from modelling)
   update_role(LSOA21CD, new_role = "id") |>
-
-  # Remove traffic-count variables
-  # Coverage is only a fifth of LSOAs, so these are unlikely to be useful
-  # for city-wide clustering.
-  step_rm(
-    count_point_n,
-    mean_aadf_all,
-    mean_aadf_cars,
-    mean_aadf_buses,
-    mean_aadf_cycles
-  ) |>
 
   # Remove zero-variance predictors
   step_zv(all_numeric_predictors()) |>

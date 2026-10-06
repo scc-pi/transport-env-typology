@@ -57,6 +57,6 @@ _targets/
 .copilot
 *.html
 *_files/
-*.docx
+/*.docx
 /.quarto/
 **/*.quarto_ipynb
