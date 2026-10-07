@@ -49,14 +49,16 @@ This is a brief exploration of the Output Area Classifications^[ONS 2021 and 202
 
 The OAC is "a hierarchical geodemographic classification which identifies neighbourhoods across the UK that share similar characteristics. The taxonomy classifies Output Areas (OAs) into 8 different Supergroups, along with 21 nested Groups and 52 nested Subgroups". The OAC for England and Wales is for each LSOA. It is built using official government statistical estimates and the classification methodology is the subject of an academic paper^[Wyszomierski, J., Longley, P.A., Singleton, A.D., Gale, C. & O’Brien, O. (2024) A neighbourhood Output Area Classification from the 2021 and 2022 UK censuses. *The Geographical Journal*, 190, e12550 ([rgs-ibg.onlinelibrary.wiley.com/doi/10.1111/geoj.12550](https://rgs-ibg.onlinelibrary.wiley.com/doi/10.1111/geoj.12550))]. 
 
-Unlike the Acorn and MOSAIC products, OAC is openly available allowing us to explore how NTET might look. NTET is not expected to be hierarchical and will probably only have around half a dozen classifications. The OAC classifications are arguably more intuitive for Local Government evidence-based policy making. However, the OAC is four years old and a lot of the value of the Acorn and MOSAIC products is in the additional underlying data sources, and currency of that data and their product releases.      
+Unlike the Acorn and Mosaic products, OAC is openly available allowing us to explore how NTET might look. NTET is not expected to be hierarchical and will probably only have around half a dozen classifications. The OAC classifications are arguably more intuitive for Local Government evidence-based policy making. However, the OAC is four years old and a lot of the value of the Acorn and MOSAIC products is in the additional underlying data sources, and currency of that data and their product releases.      
 
 ```{r}
 #| label: tbl-oac-etl
 #| tbl-cap: "Sample of Sheffield LSOA classifications"
+#| column: page
 
 # Sheffield LSOAs already available 
 tar_load(sf_lsoa)
+tar_load(df_lsoa_ward)
 
 # **** Read manual downloads ****
 
@@ -116,7 +118,14 @@ df_oac_names_wide <- df_oac_names_subgroup |>
 
 # Add the classification names to Sheffield LSOA classifications
 sf_oac <- sf_oac |> 
-  left_join(df_oac_names_wide, join_by(Subgroup == subgroup_code)) |> 
+  left_join(df_oac_names_wide, join_by(Subgroup == subgroup_code))
+
+# Add wards
+sf_oac <- sf_oac |> 
+  left_join(
+    select(df_lsoa_ward, LSOA21CD, WD25CD, WD25NM), 
+    join_by(LSOA21CD)
+  ) |> 
   rename(subgroup_code = Subgroup) |> 
   select(-Group, -Supergroup)
 
@@ -126,6 +135,8 @@ df_oac <- sf_oac |>
   select(
     LSOA21CD,
     LSOA21NM,
+    WD25CD,
+    WD25NM,
     supergroup_code,
     supergroup_name,
     group_code,
@@ -144,16 +155,20 @@ df_oac |>
     locations = cells_body(columns = 1:2)
   ) |>
   tab_style(
-    style = cell_fill(color = "#DCEAF7"),
+    style = cell_fill(color = "#93C47D"),
     locations = cells_body(columns = 3:4)
   ) |>
   tab_style(
-    style = cell_fill(color = "#B6D7F0"),
+    style = cell_fill(color = "#DCEAF7"),
     locations = cells_body(columns = 5:6)
   ) |>
   tab_style(
-    style = cell_fill(color = "#6FA8DC"),
+    style = cell_fill(color = "#B6D7F0"),
     locations = cells_body(columns = 7:8)
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#6FA8DC"),
+    locations = cells_body(columns = 9:10)
   )
 ```
 
@@ -282,16 +297,23 @@ Pen portraits of all the classifications are available in a PDF: [pen_portraits_
 #| label: fig-sheff-oac
 #| fig-cap: "OAC Supergroup classifications in Sheffield by number of LSOAs"
 
+n_lsoas <- df_oac |> 
+  count() |> 
+  pull()
+
 df_oac |>
   count(supergroup_code, supergroup_name) |>
-  mutate(supergroup_label = str_c(supergroup_code, ". ", supergroup_name)) |> 
-  mutate(supergroup_label = fct_reorder(supergroup_label, n)) |>
+  mutate(
+    supergroup_label = str_c(supergroup_code, ". ", supergroup_name),
+    supergroup_label = fct_reorder(supergroup_label, n),
+    pct = round(n / n_lsoas, 2),
+    label = str_c(n, " (", pct * 100, "%)")
+  ) |> 
   ggplot(aes(x = n, y = supergroup_label)) +
   geom_col() +
-  labs(
-    x = "Number of LSOAs",
-    y = NULL
-  )
+  geom_text(aes(label = label), hjust = -0.1, size = 3) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.2))) +
+  labs(x = "Number of LSOAs", y = NULL)
 ```
 
 

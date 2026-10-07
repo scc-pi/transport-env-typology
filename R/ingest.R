@@ -26,6 +26,24 @@ get_boundary_lsoa <- function() {
     sf::st_transform(27700)
 }
 
+get_lsoa_ward <- function() {
+  # LSOA (2021) to Electoral Ward (2025) Best Fit Lookup for Sheffield
+  # ONS Open Geography Portal
+  # Source: https://geoportal.statistics.gov.uk/datasets/ons::lsoa-2021-to-electoral-ward-2025-to-lad-2025-best-fit-lookup-in-ew-v2/about
+  
+  base_url <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD25_LAD25_EW_LU_v2/FeatureServer/0/query"
+  
+  query <- paste0(
+    base_url,
+    "?where=", utils::URLencode("LSOA21NM LIKE 'Sheffield%'", reserved = TRUE),
+    "&outFields=*&returnGeometry=false&f=json"
+  )
+  
+  result <- jsonlite::fromJSON(query, simplifyVector = TRUE)
+  tibble::as_tibble(result$features$attributes) |> 
+    dplyr::select(!dplyr::ends_with("NMW"))
+}
+
 # **** OS NGD **** 
 
 get_ngd_road <- function() {

@@ -29,7 +29,13 @@ list(
     sf_lsoa,
     get_boundary_lsoa()
   ),
-
+  
+  # Sheffield LSOA (2021) to Ward (2025) best fit lookup (ONS Open Geography Portal API)
+  tar_target(
+    df_lsoa_ward,
+    get_lsoa_ward()
+  ),
+  
   # **** OS NGD - Road Network ****
   # GeoPackage files downloaded from OS Data Hub.
   # Targets track the file modification time. If the source files are refreshed
