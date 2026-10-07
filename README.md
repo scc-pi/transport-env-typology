@@ -23,25 +23,33 @@ The project follows four stages:
 | [IMD 2025](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025) | Index of Multiple Deprivation scores, ranks and deciles | API |
 | [Census 2021 (NOMIS)](https://www.nomisweb.co.uk/sources/census_2021_bulk) | Population density (TS006), car availability (TS045), economic activity (TS066), industry (TS060) | API |
 | [ONS Open Geography Portal](https://geoportal.statistics.gov.uk/) | 2021 LSOA boundaries for Sheffield | API |
+| [GeoDS OAC 2021/2](https://data.geods.ac.uk/dataset/lsoac) | 2021/22 LSOA classifications | Manual download to `data/download/` |
 
 ## Project Structure
 
 ```
 .
 ├── R/
-│   ├── ingest.R       # Functions to acquire raw data (API calls and file paths)
+│   └── ingest.R       # Functions to acquire raw data (API calls and file paths)
 │   └── process.R      # Functions to aggregate each source to LSOA level
 │   └── assemble.R     # Functions to assemble indicators to a single data frame
 │   └── viz.R          # Functions to help with visualisations
 ├── _targets.R         # Targets pipeline definition
 ├── one-page.qmd       # Summary of what & why? (Quarto to HTML & .docx)
-├── proposal.qmd       # Project proposal include how? (Quarto to HTML)
+├── proposal.qmd       # Project proposal, includes how? (Quarto to HTML)
+├── oac.qmd            # Exploration of Output Area Classifications (Quarto to HTML)
 ├── data.qmd           # Data preparation report (Quarto to HTML)
-└── data/
-    ├── download/      # Manually downloaded files (OS NGD, city boundary)
+├── features.qmd       # Feature engineering report (Quarto to HTML)
+├── data/
+    ├── download/      # Manually downloaded files (OS NGD, city boundary, OCA)
     ├── boundaries/    # Derived boundary files
-    └── raw/           # API-sourced raw data files
+    ├── raw/           # API-sourced raw data files
     └── sheffield_transport_datasets.xlsx # Spreadsheet listing raw and processed datasets
+├── _freeze/           # Enables Quarto website local execution with CI rendering  
+├── _docs/             # Output from `quarto render` e.g. proposal.html   
+├── _quarto.yml        # Defines project level `quarto render` options e.g. `freeze: auto`
+├── resources/         # Files used by the Quarto documents e.g. style.css
+├── output/            # File output shared by the Quarto documents e.g. ons_oas_sheffield.xlsx 
 ```
 
 The `data/` and `_targets/` directories are excluded from version control.
@@ -91,6 +99,7 @@ The raw data files are excluded from this repository. Sources and their terms ar
 | IMD 2025 | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
 | Census 2021 (NOMIS) | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) — Contains National Statistics data © Crown copyright and database right 2026 |
 | ONS Open Geography Portal (LSOA boundaries) | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) — Contains OS data © Crown copyright and database right 2026 |
+| GeoDS OAC 2021/2 | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
 
 > OS NGD data is accessed under Sheffield City Council's PSGA membership. It may not be shared or redistributed outside of PSGA-permitted use. If you are reproducing or adapting this project, you will need your own PSGA membership or OS licence to access the NGD source files.
 
@@ -102,6 +111,7 @@ install.packages(c(
   "tidyverse", "sf", "here",
   "httr", "jsonlite",
   "gt", "gtExtras", "readxl",
-  "leaflet", "osdatahub", "tidymodels"
+  "leaflet", "osdatahub", "tidymodels",
+  "tidyclust"
 ))
 ```

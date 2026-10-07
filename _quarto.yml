@@ -1,8 +1,6 @@
 project:
   type: website
   output-dir: docs
-  # resources:
-  #   - report_traffic_flow.pdf
 
 website:
   title: "Neighbourhood Transport Environment Typology"
