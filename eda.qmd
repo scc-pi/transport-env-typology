@@ -1,5 +1,5 @@
 ---
-title: "Feature Engineering & Selection"
+title: "Exploratory Analysis for Clustering"
 subtitle: "Neighbourhood Transport Environment Typology"
 author: "Laurie Platt"
 date: last-modified
@@ -63,7 +63,7 @@ tar_source()
 set_theme(theme_minimal())
 ```
 
-The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in [ETL page](data.qmd).  
+The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in [ETL page](etl.qmd).  
 
 ```{r}
 #| label: df-lsoa
@@ -75,10 +75,7 @@ glimpse(df_lsoa)
 
 
 
-# Exploratory Analysis for Clustering  
-
-*??TODO: separate page before our recipe?*  
-
+# Exploratory Analysis
 
 1. Distribution plots to identify skewed transport variables.  
 1. Correlation analysis to avoid effectively counting the same concept multiple times e.g. road length, road density, road link count, junction count.  
@@ -114,7 +111,7 @@ df_lsoa |>
 
 # Missing or skewed?  
 
-Check two things before we create a recipe [TODO: Why??]:  
+Check two things before we create a recipe:  
 
 1. Are there any missing values where we may need to include impute steps in our recipe, or remove variables or records?    
 1. Are any variables so skewed that `step_normalise` alone might not be enough and transformations are needed?   
