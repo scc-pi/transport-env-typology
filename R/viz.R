@@ -28,21 +28,7 @@ make_basemap <- function(
 
 # gt (table) theme & format
 my_gt <- function(df) {
-  # gt::gt(df) |>
-  #   gt::fmt(
-  #     columns = where(is.numeric),
-  #     fns = function(x) {
-  #       dplyr::case_when(
-  #         abs(x) >= 100  ~ format(round(x, 0), scientific = FALSE),
-  #         abs(x) >= 10   ~ format(round(x, 1), scientific = FALSE),
-  #         abs(x) >= 1    ~ format(round(x, 2), scientific = FALSE),
-  #         abs(x) >= 0.01 ~ format(round(x, 3), scientific = FALSE),
-  #         TRUE           ~ format(signif(x, 3), scientific = FALSE)
-  #       )
-  #     }
-  #   ) |>
-  #   gtExtras::gt_theme_pff()
-  
+
   fmt_num <- function(x) {
     
     dplyr::if_else(
@@ -63,7 +49,12 @@ my_gt <- function(df) {
       columns = where(is.numeric),
       fns = fmt_num
     ) |>
-    gtExtras::gt_theme_pff()
+    gtExtras::gt_theme_guardian() |>
+    gt::tab_options(
+      table.font.size = px(12),
+      data_row.padding = px(2),
+      heading.padding = px(4)
+    )
 }
 
 
