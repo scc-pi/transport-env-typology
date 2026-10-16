@@ -28,16 +28,42 @@ make_basemap <- function(
 
 # gt (table) theme & format
 my_gt <- function(df) {
+  # gt::gt(df) |>
+  #   gt::fmt(
+  #     columns = where(is.numeric),
+  #     fns = function(x) {
+  #       dplyr::case_when(
+  #         abs(x) >= 100  ~ format(round(x, 0), scientific = FALSE),
+  #         abs(x) >= 10   ~ format(round(x, 1), scientific = FALSE),
+  #         abs(x) >= 1    ~ format(round(x, 2), scientific = FALSE),
+  #         abs(x) >= 0.01 ~ format(round(x, 3), scientific = FALSE),
+  #         TRUE           ~ format(signif(x, 3), scientific = FALSE)
+  #       )
+  #     }
+  #   ) |>
+  #   gtExtras::gt_theme_pff()
+  
+  fmt_num <- function(x) {
+    
+    dplyr::if_else(
+      is.na(x),
+      NA_character_,
+      dplyr::case_when(
+        abs(x) >= 100  ~ format(round(x, 0), scientific = FALSE, trim = TRUE),
+        abs(x) >= 10   ~ format(round(x, 1), scientific = FALSE, trim = TRUE),
+        abs(x) >= 1    ~ format(round(x, 2), scientific = FALSE, trim = TRUE),
+        abs(x) >= 0.01 ~ format(round(x, 3), scientific = FALSE, trim = TRUE),
+        TRUE           ~ format(signif(x, 3), scientific = FALSE, trim = TRUE)
+      )
+    )
+  }
+  
   gt::gt(df) |>
     gt::fmt(
       columns = where(is.numeric),
-      fns = function(x) {
-        ifelse(
-          abs(x) < 10,
-          format(round(x, 3), nsmall = 3, big.mark = ","),
-          format(round(x, 0), nsmall = 0, big.mark = ",")
-        )
-      }
+      fns = fmt_num
     ) |>
     gtExtras::gt_theme_pff()
 }
+
+

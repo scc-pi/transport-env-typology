@@ -25,7 +25,9 @@ execute:
   message: false
 ---
 
-We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our machine learning (ML) pipeline. 
+# Introduction  
+
+We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our whole machine learning (ML) pipeline, but it is particularly helpful for the initial ETL noted on this page.   
 
 ```{r setup}
 
@@ -81,7 +83,7 @@ df_ingested |>
 ```
 
 ::: {.callout-note}
-## Decision  
+## Spatial data  
 For spatial data (data frames with an `sf_` prefix) BNG is our default CRS. Some visualisation tools such as leaflet require WGS84, but transformation for this will only be done at the point of visualisation.  
 :::
 

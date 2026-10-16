@@ -44,7 +44,6 @@ The project follows four stages:
     ├── download/      # Manually downloaded files (OS NGD, city boundary, OCA)
     ├── boundaries/    # Derived boundary files
     ├── raw/           # API-sourced raw data files
-    └── sheffield_transport_datasets.xlsx # Spreadsheet listing raw and processed datasets
 ├── _freeze/           # Enables Quarto website local execution with CI rendering  
 ├── _docs/             # Output from `quarto render` e.g. proposal.html   
 ├── _quarto.yml        # Defines project level `quarto render` options e.g. `freeze: auto`
@@ -112,6 +111,6 @@ install.packages(c(
   "httr", "jsonlite",
   "gt", "gtExtras", "readxl",
   "leaflet", "osdatahub", "tidymodels",
-  "tidyclust"
+  "tidyclust", "skimr"
 ))
 ```

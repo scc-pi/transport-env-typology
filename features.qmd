@@ -1,5 +1,5 @@
 ---
-title: "Feature Engineering"
+title: "Feature Engineering & Selection"
 subtitle: "Neighbourhood Transport Environment Typology"
 author: "Laurie Platt"
 date: last-modified
@@ -23,9 +23,23 @@ format:
 execute:
   warning: false
   message: false
+  cache: true
 ---
 
-We're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. In particular, we're using the {tidyclust}^[{tidyclust} R package ([tidyclust.tidymodels.org](https://tidyclust.tidymodels.org/index.html))] R package.
+# Introduction
+
+In predictive modelling you often ask: *Does this variable improve prediction?*  
+In clustering we ask: *Does this variable help distinguish meaningful neighbourhood types?*   
+
+We're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. In particular, we're using the {tidyclust}^[{tidyclust} R package ([tidyclust.tidymodels.org](https://tidyclust.tidymodels.org/index.html))] R package. {tidyclust} is effectively a clustering specific replacement for the {tidymodels} package {parsnip}^[{parsnip} R package ([parsnip.tidymodels.org](https://parsnip.tidymodels.org/))].   
+
+We're going to use a "recipe^[{recipes} R package ([recipes.tidymodels.org](https://recipes.tidymodels.org/))]" to tell {tidymodels} how to preprocess data, but we need to understand the data first to know which steps are required.
+
+Before constructing the clustering recipe, it is useful to explore the candidate variables. Unlike supervised learning, clustering has no outcome variable, so exploratory analysis focuses on understanding the structure of the feature space. The objectives are to identify missing values, examine variable distributions, detect highly correlated features, identify potential transformations, and ensure that no single concept is disproportionately represented in the clustering algorithm. 
+
+Exploratory analysis is a standard part of clustering workflows because clustering algorithms are sensitive to the representation of the feature space. Examining variable distributions, identifying outliers, assessing correlations between variables, and applying appropriate transformations and standardisation can improve the interpretability and stability of cluster solutions (Tan, Steinbach & Kumar, 2019; Kaufman & Rousseeuw, 2005).
+
+*TODO: edit above paragraphs*  
 
 ```{r setup}
 
@@ -39,6 +53,8 @@ library(sf)
 library(leaflet)
 library(osdatahub)
 library(tidymodels)
+library(tidyclust)
+library(skimr)
 
 # Sources all R/*.R same as _targets.R
 tar_source()       
@@ -47,7 +63,7 @@ tar_source()
 set_theme(theme_minimal())
 ```
 
-The data frame we'll use for clustering is called `df_lsoa` and is a subset of all the indicators we've processed.    
+The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in [ETL page](data.qmd).  
 
 ```{r}
 #| label: df-lsoa
@@ -57,56 +73,99 @@ tar_load(df_lsoa)
 glimpse(df_lsoa)
 ```
 
-# Standardise variables
+
+
+# Exploratory Analysis for Clustering  
+
+*??TODO: separate page before our recipe?*  
+
+
+1. Distribution plots to identify skewed transport variables.  
+1. Correlation analysis to avoid effectively counting the same concept multiple times e.g. road length, road density, road link count, junction count.  
+1. PCA visualisation to understand the dominant dimensions of variation across Sheffield neighbourhoods before fitting clusters.  
+
+These steps are widely accepted as good practice in clustering and are arguably more important than they are in predictive modelling because there is no outcome variable to help validate feature choices afterwards.*TODO: add ref??*
+
+Include:  
+
+1. Missing values table  
+1. Distribution plots for key variables  
+1. Correlation heatmap  
+1. PCA scree plot  
+1. PCA biplot  
+
+{skimr} useful for:  
+
+- missing values  
+- distributions  
+- percentiles  
+- variable types  
 
 ```{r}
-#| label: standardise
-#| eval: false 
+#| label: tbl-skimr
+#| tbl-cap: "Summary statistics for `df_lsoa`"
+#| column: page-right
+
+df_lsoa |>
+  skim() |> 
+  my_gt()
+```
 
 
-rec_lsoa <- recipe(~ ., data = df_lsoa) |>
+# Missing or skewed?  
 
-  # LSOA identifier (retain but exclude from modelling)
-  update_role(LSOA21CD, new_role = "id") |>
+Check two things before we create a recipe [TODO: Why??]:  
 
-  # Remove zero-variance predictors
-  step_zv(all_numeric_predictors()) |>
+1. Are there any missing values where we may need to include impute steps in our recipe, or remove variables or records?    
+1. Are any variables so skewed that `step_normalise` alone might not be enough and transformations are needed?   
 
-  # Impute any remaining missing values
-  step_impute_median(all_numeric_predictors()) |>
 
-  # Standardise all predictors to mean = 0, sd = 1
-  step_normalize(all_numeric_predictors()) |>
+```{r}
+#| label: tbl-missing-skewed
+#| tbl-cap: "Check missing or skewed variables"
 
-  # Remove highly correlated variables
-  step_corr(
-    all_numeric_predictors(),
-    threshold = 0.90
+# Row per variable summary table, sorted by most skewed variable first
+df_lsoa |>
+  select(-LSOA21CD) |>
+  summarise(
+    across(
+      everything(), 
+      list(
+        n_miss  = ~sum(is.na(.)),
+        min     = ~min(., na.rm = TRUE),
+        median  = ~median(., na.rm = TRUE),
+        max     = ~max(., na.rm = TRUE),
+        skew    = ~
+          (mean(., na.rm = TRUE) - median(., na.rm = TRUE)) 
+          / sd(., na.rm = TRUE)
+      ), 
+      .names = "{.col}|{.fn}"
+    )
+  ) |>
+  pivot_longer(everything(), names_to = c("variable", "stat"), names_sep = "\\|") |>
+  pivot_wider(names_from = stat, values_from = value) |>
+  arrange(desc(abs(skew))) |> 
+  my_gt() |>
+  fmt_number(
+    columns = c(min, median, max),
+    decimals = 3,
+    drop_trailing_zeros = TRUE
+  ) |>
+  fmt_number(
+    columns = skew,
+    decimals = 3
   )
-
-# Prepare recipe
-rec_lsoa_prep <- prep(rec_lsoa)
-
-# Create clustering dataset
-df_cluster <- bake(
-  rec_lsoa_prep,
-  new_data = NULL
-)
-
-# Predictor matrix for clustering
-x_cluster <- df_cluster |>
-  select(-LSOA21CD)
 ```
 
+Results:  
 
-# Explore distributions
-  
-  
-```{r}
-#| label: city-boundary
+1. No missing values.   
+1. The cycling and A-road variables stand out as potentially skewed.   
 
-make_basemap() 
-```
-  
-# Examine correlations
+This conclusion is based less on the reported skewness statistic and more on the relationship between the minimum, median, and maximum values:  
+
+- `cycle_infra_length_m` and `cycle_infra_density_m_per_km2` both have a median of `0`, meaning at least half of the LSOAs have no recorded cycling infrastructure, while a small number contain several kilometres of infrastructure.  
+- `a_road_length_m`, `a_road_density_km_per_km2`, and `pct_a_road` have relatively low median values but much larger maximum values, indicating that most neighbourhoods contain little or no A-road infrastructure while a small number contain very large amounts.  
+
+These patterns suggest right-skewed distributions, where many observations are concentrated at low values and a few observations form a long upper tail. Such distributions are expected for transport infrastructure measures because specialised infrastructure tends to be concentrated in a limited number of locations. Since our NTET dataset includes variables describing road networks and cycling infrastructure aggregated to LSOA level, it is sensible to examine these distributions visually before deciding whether transformations are required.  
 
