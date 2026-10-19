@@ -1,11 +1,5 @@
 # Functions to acquire raw datasets for the transport environment typology.
 
-# **** Manual downloads ****
-
-# Datasets that were downloaded manually are referenced by a relative path here 
-
-NGD_DIR <- here::here("data", "download", "NGD Traffic Speed Sheffield")
-
 # **** Boundaries ****
 # Sheffield local authority ID for ONS is E08000019
 
@@ -44,28 +38,124 @@ get_lsoa_ward <- function() {
     dplyr::select(!dplyr::ends_with("NMW"))
 }
 
-# **** OS NGD **** 
+# **** OS NGD ****
+# Files are downloaded from the OS Downloads API using the data package
+# "NGD Transport - Sheffield" (ID: 22969) under the OS Public Sector Plan.
+# Authentication uses an API key stored in the OS_API_KEY environment variable.
+# Set this in your .Renviron file: OS_API_KEY=your_key_here
+#
+# targets caches the downloaded file hashes, so re-downloads only occur when
+# the file content changes on disk (i.e. a new OS release is fetched manually
+# by invalidating the target with tar_invalidate("file_ngd_*")).
 
-get_ngd_road <- function() {
-  file.path(NGD_DIR, "trn_ntwk_road.gpkg")
+NGD_PACKAGE_ID <- "22969"
+NGD_DIR <- here::here("data", "raw", "NGD Transport Sheffield")
+
+# Retrieve the OS API key from the OS_API_KEY environment variable.
+os_api_key <- function() {
+  key <- Sys.getenv("OS_API_KEY")
+  if (!nzchar(key)) {
+    stop(
+      "OS_API_KEY environment variable is not set. ",
+      "Add it to .Renviron: OS_API_KEY=your_key_here"
+    )
+  }
+  key
 }
 
-get_ngd_roadlink <- function() {
-  file.path(NGD_DIR, "trn_ntwk_roadlink.gpkg")
+# Download a single GeoPackage from the OS Downloads API.
+# Queries the latest version of the given data package, finds a file whose
+# name contains `layer_name`, downloads it (unzipping if necessary), and
+# copies the .gpkg to `out_path`. Returns `out_path`.
+os_download_ngd_gpkg <- function(package_id, layer_name, out_path) {
+  key <- os_api_key()
+
+  # Get latest version metadata (includes downloads list)
+  version_resp <- httr::GET(
+    paste0(
+      "https://api.os.uk/downloads/v1/dataPackages/",
+      package_id,
+      "/versions/latest"
+    ),
+    httr::add_headers(key = key)
+  )
+  httr::stop_for_status(version_resp)
+  version_info <- jsonlite::fromJSON(
+    httr::content(version_resp, "text", encoding = "UTF-8")
+  )
+
+  # Match a download entry by layer name
+  downloads  <- version_info$downloads
+  match_idx  <- which(grepl(layer_name, downloads$fileName, ignore.case = TRUE))
+  if (length(match_idx) == 0) {
+    stop(
+      "No download matching '", layer_name, "' found in package ", package_id, ". ",
+      "Available files: ", paste(downloads$fileName, collapse = ", ")
+    )
+  }
+  dl_url      <- downloads$url[match_idx[1]]
+  dl_filename <- downloads$fileName[match_idx[1]]
+
+  # Download to a temp file
+  tf <- tempfile(fileext = tools::file_ext(dl_filename))
+  dl_resp <- httr::GET(
+    dl_url,
+    httr::add_headers(key = key),
+    httr::write_disk(tf, overwrite = TRUE)
+  )
+  httr::stop_for_status(dl_resp)
+
+  # Extract .gpkg (handle both zip archives and direct .gpkg downloads)
+  dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
+
+  if (grepl("\\.zip$", dl_filename, ignore.case = TRUE)) {
+    td <- tempfile()
+    dir.create(td, recursive = TRUE)
+    utils::unzip(tf, exdir = td)
+    gpkg_files <- list.files(
+      td, pattern = "\\.gpkg$", full.names = TRUE, recursive = TRUE
+    )
+    if (length(gpkg_files) == 0) {
+      stop("No .gpkg file found inside downloaded zip for layer: ", layer_name)
+    }
+    file.copy(gpkg_files[1], out_path, overwrite = TRUE)
+  } else {
+    file.copy(tf, out_path, overwrite = TRUE)
+  }
+
+  out_path
 }
 
-get_ngd_roadnode <- function() {
-  file.path(NGD_DIR, "trn_ntwk_roadnode.gpkg")
+get_ngd_road <- function(
+    out_path = file.path(NGD_DIR, "trn_ntwk_road.gpkg")
+) {
+  os_download_ngd_gpkg(NGD_PACKAGE_ID, "trn_ntwk_road", out_path)
 }
 
-get_ngd_speed <- function() {
+get_ngd_roadlink <- function(
+    out_path = file.path(NGD_DIR, "trn_ntwk_roadlink.gpkg")
+) {
+  os_download_ngd_gpkg(NGD_PACKAGE_ID, "trn_ntwk_roadlink", out_path)
+}
+
+get_ngd_roadnode <- function(
+    out_path = file.path(NGD_DIR, "trn_ntwk_roadnode.gpkg")
+) {
+  os_download_ngd_gpkg(NGD_PACKAGE_ID, "trn_ntwk_roadnode", out_path)
+}
+
+get_ngd_speed <- function(
+    out_path = file.path(NGD_DIR, "trn_rami_averageandindicativespeed.gpkg")
+) {
   # Average and indicative speeds per road link
-  file.path(NGD_DIR, "trn_rami_averageandindicativespeed.gpkg")
+  os_download_ngd_gpkg(NGD_PACKAGE_ID, "trn_rami_averageandindicativespeed", out_path)
 }
 
-get_ngd_highway <- function() {
+get_ngd_highway <- function(
+    out_path = file.path(NGD_DIR, "trn_rami_highwaydedication.gpkg")
+) {
   # Highway dedication (cycle routes, footways etc.)
-  file.path(NGD_DIR, "trn_rami_highwaydedication.gpkg")
+  os_download_ngd_gpkg(NGD_PACKAGE_ID, "trn_rami_highwaydedication", out_path)
 }
 
 # **** DfT Traffic (API) ****
@@ -135,12 +225,58 @@ get_imd <- function() {
 # **** NaPTAN (bus stops) ****
 
 get_naptan_file <- function(
-    out_path = here::here("data", "raw", "naptan_sheffield.csv")
+    out_path = here::here("data", "raw", "NaPTAN", "naptan_sheffield.csv")
 ) {
   # All NaPTAN access nodes for South Yorkshire (ATCO area code 370 = Sheffield)
-  # Source: https://www.data.gov.uk/dataset/naptan
-  url <- "https://naptan.api.dft.gov.uk/v1/access-nodes?dataFormat=csv&ATCOAreaCode=370"
-  httr::GET(url, httr::write_disk(out_path, overwrite = TRUE))
+  # Source: https://beta-naptan.dft.gov.uk/
+  url <- paste0(
+    "https://naptan.api.dft.gov.uk/v1/access-nodes",
+    "?dataFormat=csv&ATCOAreaCode=370"
+  )
+  dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
+  resp <- httr::GET(url, httr::write_disk(out_path, overwrite = TRUE))
+  httr::stop_for_status(resp)
+  out_path
+}
+
+# **** OAC ****
+
+OAC_DIR <- here::here("data", "raw", "OAC")
+
+get_oac_file <- function(
+    out_path = here::here(OAC_DIR, "lsoa_dz_sdz_lookup.csv")
+) {
+  # UK LSOA / DZ / SDZ Classification (2021/2 LSOAC)
+  # Source: https://data.geods.ac.uk/dataset/lsoac
+  url <- paste0(
+    "https://data.geods.ac.uk/dataset/",
+    "d257ab6a-2353-4aec-b6f7-2c3dbc359766/resource/",
+    "92de7c1f-07a8-440c-8793-203fe61d3005/download/",
+    "lsoa_dz_sdz_lookup.csv"
+  )
+  dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
+  resp <- httr::GET(url, httr::write_disk(out_path, overwrite = TRUE))
+  httr::stop_for_status(resp)
+  out_path
+}
+
+get_oac_names_file <- function(
+    out_path = here::here(
+      OAC_DIR, "classification_codes_and_names_ukoac_lsoac.csv"
+    )
+) {
+  
+  # File with names for different classification codes
+  # Source: https://data.geods.ac.uk/dataset/lsoac
+  url <- paste0(
+    "https://data.geods.ac.uk/dataset/",
+    "d257ab6a-2353-4aec-b6f7-2c3dbc359766/resource/",
+    "8f2e48a0-7900-47b5-b41e-c7fd8e303c3d/download/",
+    "classification_codes_and_names_ukoac_lsoac.csv"
+  )
+  dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
+  resp <- httr::GET(url, httr::write_disk(out_path, overwrite = TRUE))
+  httr::stop_for_status(resp)
   out_path
 }
 
@@ -148,22 +284,24 @@ get_naptan_file <- function(
 # NOMIS bulk CSV files are zip archives containing one CSV per geography level
 # See https://www.nomisweb.co.uk/sources/census_2021_bulk
 
+CENSUS_DIR <- here::here("data", "raw", "census")
+
 get_census_population_file <- function(
-    out_path = here::here("data", "raw", "census2021_ts006_lsoa.csv")
+    out_path = here::here(CENSUS_DIR, "census2021_ts006_lsoa.csv")
 ) {
   # TS006 - Population density (persons per sq km) at LSOA level
   get_nomis_census_lsoa("ts006", out_path)
 }
 
 get_census_cars_file <- function(
-    out_path = here::here("data", "raw", "census2021_ts045_lsoa.csv")
+    out_path = here::here(CENSUS_DIR, "census2021_ts045_lsoa.csv")
 ) {
   # TS045 - Car or van availability at LSOA level
   get_nomis_census_lsoa("ts045", out_path)
 }
 
 get_census_economic_activity_file <- function(
-    out_path = here::here("data", "raw", "census2021_ts066_lsoa.csv")
+    out_path = here::here(CENSUS_DIR, "census2021_ts066_lsoa.csv")
 ) {
   # TS066 - Economic activity status at LSOA level.
   # Provides unemployment rate as a direct proxy for employment deprivation.
@@ -172,7 +310,7 @@ get_census_economic_activity_file <- function(
 }
 
 get_census_employment_file <- function(
-    out_path = here::here("data", "raw", "census2021_ts060_msoa.csv")
+    out_path = here::here(CENSUS_DIR, "census2021_ts060_msoa.csv")
 ) {
   # TS060 - Industry of employment.
   # Note: TS060 is not published at LSOA level (ONS disclosure limitation);
@@ -195,6 +333,7 @@ get_nomis_census_lsoa <- function(table_code, out_path) {
 
 # Core helper used by all geography-level NOMIS wrappers above.
 get_nomis_census_geography <- function(table_code, geography, out_path) {
+  
   url <- paste0(
     "https://www.nomisweb.co.uk/output/census/2021/census2021-",
     table_code,
@@ -207,6 +346,8 @@ get_nomis_census_geography <- function(table_code, geography, out_path) {
   td <- tempfile()
   dir.create(td)
   utils::unzip(tf, exdir = td)
+  
+  dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
 
   pattern <- paste0("-", geography, "\\.csv$")
   csv <- list.files(td, pattern = pattern, full.names = TRUE)

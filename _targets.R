@@ -105,6 +105,21 @@ list(
     readr::read_csv(file_naptan, show_col_types = FALSE)
   ),
 
+  # **** OAC ****
+  # UK LSOA / DZ / SDZ Classification (2021/2 LSOAC) (Geographic Data Service)
+
+  tar_target(
+    file_oac,
+    get_oac_file(),
+    format = "file"
+  ),
+  
+  tar_target(
+    file_oac_names,
+    get_oac_names_file(),
+    format = "file"
+  ),
+
   # **** Census 2021 ****
 
   # TS006 - Population density

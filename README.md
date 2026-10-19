@@ -17,13 +17,14 @@ The project follows four stages:
 
 | Source | Description | Access |
 |--------|-------------|--------|
-| [OS NGD](https://www.ordnancesurvey.co.uk/products/os-ngd-api-features) | Road network (links, nodes), speed limits, average speeds, cycle/highway dedication | Manual download to `data/download/` |
+| [OS NGD](https://www.ordnancesurvey.co.uk/products/os-ngd-api-features) | Road network (links, nodes), speed limits, average speeds, cycle/highway dedication | API (Data Package ID: 22969) |
 | [DfT Road Traffic Statistics API](https://roadtraffic.dft.gov.uk/api) | Average Annual Daily Flow (AADF) per count point | API (Sheffield LA ID: 159) |
 | [NaPTAN](https://www.data.gov.uk/dataset/naptan) | Bus stop locations (ATCO area 370 — South Yorkshire) | API |
 | [IMD 2025](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025) | Index of Multiple Deprivation scores, ranks and deciles | API |
 | [Census 2021 (NOMIS)](https://www.nomisweb.co.uk/sources/census_2021_bulk) | Population density (TS006), car availability (TS045), economic activity (TS066), industry (TS060) | API |
-| [ONS Open Geography Portal](https://geoportal.statistics.gov.uk/) | 2021 LSOA boundaries for Sheffield | API |
-| [GeoDS OAC 2021/2](https://data.geods.ac.uk/dataset/lsoac) | 2021/22 LSOA classifications | Manual download to `data/download/` |
+| [ONS Open Geography Portal](https://geoportal.statistics.gov.uk) | 2021 LSOA boundaries for Sheffield | API |
+| [SCC AGOL](https://sheffieldcc.maps.arcgis.com) | Sheffield City boundary | API |
+| [GeoDS OAC 2021/2](https://data.geods.ac.uk/dataset/lsoac) | 2021/22 LSOA classifications | API |
 
 ## Project Structure
 
@@ -41,8 +42,6 @@ The project follows four stages:
 ├── data.qmd           # Data preparation report (Quarto to HTML)
 ├── features.qmd       # Feature engineering report (Quarto to HTML)
 ├── data/
-    ├── download/      # Manually downloaded files (OS NGD, city boundary, OCA)
-    ├── boundaries/    # Derived boundary files
     ├── raw/           # API-sourced raw data files
 ├── _freeze/           # Enables Quarto website local execution with CI rendering  
 ├── _docs/             # Output from `quarto render` e.g. proposal.html   
@@ -55,7 +54,7 @@ The `data/` and `_targets/` directories are excluded from version control.
 
 ## Running the Pipeline
 
-The pipeline is managed with [`{targets}`](https://books.ropensci.org/targets/). Before running, ensure OS NGD GeoPackage files have been downloaded to `data/download/NGD Traffic Speed Sheffield/`.
+The pipeline is managed with [`{targets}`](https://books.ropensci.org/targets/).  
 
 ```r
 library(targets)

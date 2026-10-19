@@ -56,26 +56,18 @@ The OAC is "a hierarchical geodemographic classification which identifies neighb
 #| tbl-cap: "Sample of Sheffield LSOA classifications"
 #| column: page
 
-# Sheffield LSOAs already available 
 tar_load(sf_lsoa)
 tar_load(df_lsoa_ward)
+tar_load(file_oac)
+tar_load(file_oac_names)
 
-# **** Read manual downloads ****
+# **** Read OAC files ****
 
 # File with classifications for all UK LSOAs
-df_oac_all <- read_csv(
-  here(
-    "data", "download", "oac", 
-    "lsoa_dz_sdz_lookup.csv"
-  )
-)
+df_oac_all <- read_csv(file_oac)
 
 # File with names for different classification codes
-df_oac_names <- read_csv(
-  here(
-    "data", "download", "oac", 
-    "classification_codes_and_names_ukoac_lsoac.csv")
-)
+df_oac_names <- read_csv(file_oac_names)
 
 # Only interested in Sheffield LSOA classifications
 sf_oac <- sf_lsoa |> 
