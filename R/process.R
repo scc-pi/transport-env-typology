@@ -130,7 +130,7 @@ process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
 # and density (cycle_infra_density_m_per_km2). LSOAs with no infrastructure get 0.
 process_lsoa_cycling <- function(sf_ngd_highway, sf_lsoa) {
   highway_bng <- to_bng(sf_ngd_highway)
-  areas       <- lsoa_area_km2(sf_lsoa)
+  areas <- lsoa_area_km2(sf_lsoa)
 
   cycle_infra <- highway_bng |>
     dplyr::filter(description %in% c("Cycle Track Or Cycle Way", "Bridleway"))
@@ -233,7 +233,7 @@ process_lsoa_imd <- function(sf_imd) {
     sf::st_drop_geometry() |>
     dplyr::select(
       LSOA21CD, 
-      imd_rand = IMDRank,
+      imd_rank = IMDRank,
       imd_decile = IMDDecil
     )
 }

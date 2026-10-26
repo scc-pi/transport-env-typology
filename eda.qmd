@@ -51,10 +51,12 @@ library(gt)
 library(gtExtras)
 library(sf)
 library(leaflet)
-library(osdatahub)
+# library(osdatahub)
 library(tidymodels)
-library(tidyclust)
+# library(tidyclust)
 library(skimr)
+library(ggcorrplot)
+library(factoextra)
 
 # Sources all R/*.R same as _targets.R
 tar_source()       
@@ -72,24 +74,188 @@ tar_load(df_lsoa_all)
 
 # TODO
 df_lsoa <- df_lsoa_all
+rm(df_lsoa_all)
 
 glimpse(df_lsoa)
 ```
 
-1. Distribution plots to identify skewed transport variables.  
-1. Correlation analysis to avoid effectively counting the same concept multiple times e.g. road length, road density, road link count, junction count.  
+1. Summary statistics to identify missing data and skewed variables.  
+1. Distribution plots on key variables.  
+1. Correlation analysis to avoid effectively counting the same concept multiple times.    
 1. PCA visualisation to understand the dominant dimensions of variation across Sheffield neighbourhoods before fitting clusters.  
 
 These steps are widely accepted as good practice in clustering and are arguably more important than they are in predictive modelling because there is no outcome variable to help validate feature choices afterwards.*TODO: add ref??*
 
-Include:  
+# Correlation    
 
-1. Missing values table  
-1. Distribution plots for key variables  
-1. Correlation heatmap  
-1. PCA scree plot  
-1. PCA biplot  
+For clustering, our intent is not to interpret the correlations themselves. It is to decide whether some variables are essentially measuring the same underlying concept and therefore risk being over-weighted in the clustering. 
 
+*TODO: Move this section below the "Distribution plots" section*
+
+```{r}
+#| label: fig-corr-heat
+#| fig-cap: Correlation matrix heatmap
+#| column: page-right
+#| fig-width: 6
+#| out-width: 100%
+
+# Deselect some candidate variables
+df_lsoa <- df_lsoa |> 
+  select(!c(
+    starts_with("cycle_infra_"), 
+    count_point_n, 
+    starts_with("mean_aadf_")
+  ))
+
+# Correlation matrix
+cor_mat <- cor(select(df_lsoa, -LSOA21CD))
+
+# Correlation matrix heatmap
+ggcorrplot(
+  cor_mat,   
+  hc.order = TRUE, 
+  hc.rect = 3, 
+  outline.color = "white",
+  tl.cex = 8
+)
+```
+
+Looking at our heatmap, there are some clear groups of strongly related variables.  
+
+We can generate an objective list of variables that are statistically redundant.
+
+```{r}
+#| label: tbl-stat-redundant
+#| tbl-cap: "Statistically redundant variables"
+
+rec <- recipe(~ ., data = df_lsoa) |> 
+  step_corr(all_numeric_predictors(), threshold = 0.8)
+
+rec_prep <- prep(rec)
+
+tidy(rec_prep, number = 1) |> 
+  select(terms) |> 
+  my_gt()
+```
+
+However, as we're building a neighbourhood typology rather than a predictive model we're going to manually inspect the correlations before automatically removing them. There could be statistically correlated varaibles that represent distinct concepts that help define neighbourhood character.   
+
+To reduce redundancy and prevent particular concepts from being overrepresented in the clustering process, highly correlated variables measuring the same underlying construct have been reviewed and simplified. Preference is given to density and rate-based indicators rather than absolute counts, as these better reflect neighbourhood characteristics and are less influenced by area size or population.  
+
+:::: {.columns}
+
+::: {.column}
+
+Keeping:   
+
+- road_density_km_per_km2  
+- junction_density_per_km2  
+- bus_stop_density_per_km2  
+- pop_density_per_km2  
+- pct_no_car  
+- unemployment_rate  
+- imd_decile  
+- pct_20mph_or_less  
+- dist_city_centre_km  
+- mean_avg_speed_am_mph  
+- pct_a_road  
+- pop_16_plus  
+
+:::
+
+::: {.column}
+
+Dropping:  
+
+- road_length_m  
+- road_link_count  
+- junction_count  
+- hh_no_car  
+- unemployed_count  
+- imd_rank  
+- mean_speed_limit_mph  
+- median_speed_limit_mph  
+
+:::
+
+::::
+
+```{r}
+#| label: corr-drop
+
+df_lsoa <- df_lsoa |> 
+  select(!c(
+    road_length_m,  
+    road_link_count,
+    junction_count,
+    hh_no_car,
+    unemployed_count,
+    imd_rank,
+    mean_speed_limit_mph,
+    median_speed_limit_mph,
+  ))
+```
+
+# PCA 
+
+The PCA (Principal Component Analysis) helps us understand the latent dimensions.  
+
+::: {.callout-note collapse="true"}
+## Latent dimensions  
+"Latent dimensions" is a statistical term for underlying characteristics that we can't measure directly, but which are being measured indirectly by several variables. For example, a possible latent dimension might be *strategic road function* with observed variables `pct_a_road`, `mean_speed_limit_mph`, `mean_avg_speed_am_mph`.  
+:::
+
+*TODO: Run PCA before and after correlation filtering. If the first few components barely change, that's good evidence that we've removed redundancy without losing meaningful structure.*
+
+## Standardise
+
+Before the PCA we need to standardise our remaining variables.
+
+```{r}
+#| label: tbl-standardise
+#| tbl-cap: "Sample of standardised variables" 
+
+rec <- recipe(~ ., data = select(df_lsoa, -LSOA21CD)) |> 
+  step_normalize(all_numeric_predictors())
+
+rec_prep <- prep(rec)
+
+df_pca <- bake(rec_prep, new_data = NULL)
+
+df_pca |> 
+  head() |> 
+  my_gt()
+```
+
+## Scree plot  
+
+```{r}
+#| label: fig-pca-scree
+#| fig-cap: "Skree plot"
+
+pca_obj <- prcomp(df_pca, scale. = FALSE)
+
+# summary(pca_obj)
+fviz_eig(pca_obj)
+```
+
+The first two components explain about 46% of the variance, and the curve flattens after the fourth.
+
+## PCA biplot  
+
+```{r}
+#| label: fig-pca-bi
+#| fig-cap: "Biplot"
+
+fviz_pca_biplot(pca_obj)
+```
+
+# !!EXIT!!
+```{r}
+#| label: exit
+
+knitr::knit_exit()
+```
 
 # Summary stats
 
@@ -229,8 +395,6 @@ We're going to run clustering without the DfT indicators. The OS NGD speed metri
 
 # Distribution plots for key variables  
 
-# Correlation heatmap  
 
-# PCA scree plot  
 
-# PCA biplot  
+
