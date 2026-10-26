@@ -54,6 +54,12 @@ The `data/` and `_targets/` directories are excluded from version control.
 
 ## Running the Pipeline
 
+The pipeline includes OS data that requires an API key. This is acquired via an [OS Data Hub API project](https://docs.os.uk/os-apis/core-concepts/getting-started-with-an-api-project). The pipeline assumes a variable called `OS_API_KEY` has been set in the .Renviron file, for example via:  
+
+```r
+usethis::use_env_var("OS_API_KEY", "123456789ABCDEFGHIJ") # replace 2nd argument with actual API key
+```
+
 The pipeline is managed with [`{targets}`](https://books.ropensci.org/targets/).  
 
 ```r
@@ -110,6 +116,8 @@ install.packages(c(
   "httr", "jsonlite",
   "gt", "gtExtras", "readxl",
   "leaflet", "osdatahub", "tidymodels",
-  "tidyclust", "skimr"
+  "tidyclust", "skimr", "usethis",
+  "ggcorrplot", "factoextra",
+  "writexl"
 ))
 ```
