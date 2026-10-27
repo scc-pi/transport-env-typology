@@ -6,7 +6,7 @@ div.mermaid svg .node rect {
 
 .quarto-float-tbl figcaption {
   text-align: left !important;
-  margin-bottom: 0.02rem !important;
+/*  margin-bottom: 0.02rem !important;*/
 }
 
 .gt_table {

@@ -178,6 +178,11 @@ list(
     df_lsoa_road_network,
     process_lsoa_road_network(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
   ),
+  
+  tar_target(
+    df_lsoa_road_network_near,
+    process_lsoa_road_network_near(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
+  ),
 
   tar_target(
     df_lsoa_speed,

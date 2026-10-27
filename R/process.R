@@ -79,6 +79,59 @@ process_lsoa_road_network <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa)
     )
 }
 
+# Returns a data frame (one row per LSOA) with road length totals, link counts,
+# A-road/motorway share, and density metrics (road_density_km_per_km2,
+# a_road_density_km_per_km2, junction_density_per_km2).
+process_lsoa_road_network_near <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa) {
+  links_bng <- to_bng(sf_ngd_roadlink)
+  nodes_bng <- to_bng(sf_ngd_roadnode)
+  areas <- lsoa_area_km2(sf_lsoa)
+  
+  # Clip road links to LSOA boundaries (+ 5 m buffer)
+  # and re-measure each clipped segment.
+  message("Intersecting road links with LSOAs (+5m) — this may take a moment...")
+  links_clipped <- sf::st_intersection(
+    dplyr::select(links_bng, osid, roadclassification),
+    sf_lsoa |>
+      sf::st_buffer(dist = 10) |>
+      dplyr::select(LSOA21CD)
+  ) |>
+    dplyr::mutate(link_length_m = as.numeric(sf::st_length(geometry)))
+  
+  road_lengths <- links_clipped |>
+    sf::st_drop_geometry() |>
+    dplyr::group_by(LSOA21CD) |>
+    dplyr::summarise(
+      near_road_length_m   = sum(link_length_m, na.rm = TRUE),
+      near_a_road_length_m = sum(
+        link_length_m[grepl("A Road|Motorway", roadclassification)],
+        na.rm = TRUE
+      ),
+      near_road_link_count = dplyr::n(),
+      near_pct_a_road      = near_a_road_length_m / near_road_length_m,
+      .groups = "drop"
+    )
+  
+  # Count road nodes (junctions) falling within each LSOA.
+  junction_counts <- sf::st_join(
+    dplyr::select(nodes_bng, osid),
+    dplyr::select(sf_lsoa, LSOA21CD),
+    join = sf::st_within
+  ) |>
+    sf::st_drop_geometry() |>
+    dplyr::filter(!is.na(LSOA21CD)) |>
+    dplyr::count(LSOA21CD, name = "junction_count")
+  
+  areas |>
+    dplyr::left_join(road_lengths, by = "LSOA21CD") |>
+    dplyr::left_join(junction_counts, by = "LSOA21CD") |>
+    dplyr::mutate(
+      near_road_density_km_per_km2 = (near_road_length_m   / 1000) / area_km2,
+      near_a_road_density_km_per_km2 = (near_a_road_length_m / 1000) / area_km2,
+      near_junction_density_per_km2= junction_count / area_km2
+    )
+}
+
 # **** Speed environment (OS NGD) ****
 # OS NGD speed field names:
 #   indicativespeedlimit_mph - posted speed limit in mph
@@ -122,7 +175,7 @@ process_lsoa_speed <- function(sf_ngd_speed, sf_lsoa) {
 
 # **** Active travel / cycling infrastructure (OS NGD) ****
 # OS NGD HighwayDedication uses a `description` field with values including:
-#   "Cycle Track Or Cycle Way", "Bridleway", "Pedestrian Way Or Footpath", etc.
+# "Cycle Track Or Cycle Way", "Bridleway", "Pedestrian Way Or Footpath", etc.
 # Cycling infrastructure = "Cycle Track Or Cycle Way" (dedicated).
 # Bridleways are included as they are legal for cycling under the Highway Act.
 
