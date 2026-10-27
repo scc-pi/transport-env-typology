@@ -1,0 +1,82 @@
+---
+title: "Machine Learning - Clustering"
+subtitle: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+  cache: false
+---
+
+# Introduction
+
+Having acquired our data (see the [ETL page](etl.qmd)) and spent some time to understand it (see the [EDS page](eda.qmd)), this page will actually employ some machine learning models.
+
+We're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. In particular, we're using the {tidyclust}^[{tidyclust} R package ([tidyclust.tidymodels.org](https://tidyclust.tidymodels.org/index.html))] R package. {tidyclust} is effectively a clustering specific replacement for the {tidymodels} package {parsnip}^[{parsnip} R package ([parsnip.tidymodels.org](https://parsnip.tidymodels.org/))].   
+
+We're going to use a "recipe"^[{recipes} R package ([recipes.tidymodels.org](https://recipes.tidymodels.org/))] to tell {tidymodels}. 
+
+
+```{r setup}
+
+# Packages
+library(tidyverse)
+library(here)
+library(targets)
+library(gt)
+library(gtExtras)
+library(sf)
+library(leaflet)
+# library(osdatahub)
+library(tidymodels)
+library(tidyclust)
+
+# Sources all R/*.R same as _targets.R
+tar_source()       
+
+# Objects needed from our {taregts} pipeline
+tar_load(df_lsoa_all)
+
+# ggplot theme
+set_theme(theme_minimal())
+```
+
+The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in the [ETL page](etl.qmd).  
+
+```{r}
+#| label: df-lsoa
+
+# TODO
+df_lsoa <- df_lsoa_all
+rm(df_lsoa_all)
+
+# glimpse(df_lsoa)
+```
+
+
+# !!EXIT!!
+```{r}
+#| label: exit
+#| eval: false
+
+knitr::knit_exit()
+```
+

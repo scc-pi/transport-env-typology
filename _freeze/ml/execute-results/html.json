@@ -1,0 +1,15 @@
+{
+  "hash": "a9a53febd06d2c81b52da19085e87ff9",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Machine Learning - Clustering\"\nsubtitle: \"Neighbourhood Transport Environment Typology\"\nauthor: \"Laurie Platt\"\ndate: last-modified\ndate-format: \"[Last updated ] DD MMMM, YYYY\"\nformat:\n  html:\n    css: resources/styles.css\n    code-tools: true\n    self-contained: false\n    code-fold: true\n    toc: true\n    toc-depth: 5\n    toc-expand: 1\n    number-sections: true\n    fig-cap-location: bottom\n    fig-align: left\n    code-links:\n      - text: scc-pi/transport-env-typology\n        icon: github\n        href: https://github.com/scc-pi/transport-env-typology\nexecute:\n  warning: false\n  message: false\n  cache: false\n---\n\n# Introduction\n\nHaving acquired our data (see the [ETL page](etl.qmd)) and spent some time to understand it (see the [EDS page](eda.qmd)), this page will actually employ some machine learning models.\n\nWe're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. In particular, we're using the {tidyclust}^[{tidyclust} R package ([tidyclust.tidymodels.org](https://tidyclust.tidymodels.org/index.html))] R package. {tidyclust} is effectively a clustering specific replacement for the {tidymodels} package {parsnip}^[{parsnip} R package ([parsnip.tidymodels.org](https://parsnip.tidymodels.org/))].   \n\nWe're going to use a \"recipe\"^[{recipes} R package ([recipes.tidymodels.org](https://recipes.tidymodels.org/))] to tell {tidymodels}. \n\n\n\n::: {.cell}\n\n```{.r .cell-code}\n# Packages\nlibrary(tidyverse)\nlibrary(here)\nlibrary(targets)\nlibrary(gt)\nlibrary(gtExtras)\nlibrary(sf)\nlibrary(leaflet)\n# library(osdatahub)\nlibrary(tidymodels)\nlibrary(tidyclust)\n\n# Sources all R/*.R same as _targets.R\ntar_source()       \n\n# Objects needed from our {taregts} pipeline\ntar_load(df_lsoa_all)\n\n# ggplot theme\nset_theme(theme_minimal())\n```\n:::\n\n\nThe data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in the [ETL page](etl.qmd).  \n\n\n::: {.cell}\n\n```{.r .cell-code}\n# TODO\ndf_lsoa <- df_lsoa_all\nrm(df_lsoa_all)\n\n# glimpse(df_lsoa)\n```\n:::\n\n\n\n# !!EXIT!!\n\n::: {.cell}\n\n```{.r .cell-code}\nknitr::knit_exit()\n```\n:::\n\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
