@@ -34,7 +34,6 @@ We're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](http
 
 We're going to use a "recipe"^[{recipes} R package ([recipes.tidymodels.org](https://recipes.tidymodels.org/))] to tell {tidymodels}. 
 
-
 ```{r setup}
 
 # Packages
@@ -45,7 +44,6 @@ library(gt)
 library(gtExtras)
 library(sf)
 library(leaflet)
-# library(osdatahub)
 library(tidymodels)
 library(tidyclust)
 
@@ -59,6 +57,31 @@ tar_load(df_lsoa_all)
 set_theme(theme_minimal())
 ```
 
+```{mermaid}
+%%| echo: true
+%%| code-fold: show
+
+flowchart TD
+    df["<b>data</b><br/>df_lsoa"]
+    rec["<b>recipe</b><br/>lsoa_rec"]
+    spec["<b>specification</b><br/>kmeans_spec"]
+    
+    rec --> wf["<b>workflow</b><br/>kmeans_wf"]
+    spec --> wf
+
+    df --> fit
+    wf --> fit["<b>fitted workflow</b><br/>kmeans_fit"]
+
+    fit --> assign["<b>augment</b><br/>extract_cluster_assignment()"]
+    fit --> cent["<b>extract results</b><br/>extract_centroids()"]
+    fit --> eval["<b>evaluate</b><br/>sse_within_total(), sse_ratio(), silhouette_avg()"]
+    df -->|"new_data"| eval
+    df -->|"select(LSOA21CD)"| clust["<b>clusters</b><br/>LSOA21CD + cluster"]
+    assign -->|"$.cluster, same row order"| clust
+```
+
+# Data  
+
 The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in the [ETL page](etl.qmd).  
 
 ```{r}
@@ -71,12 +94,98 @@ rm(df_lsoa_all)
 # glimpse(df_lsoa)
 ```
 
+# Recipe
 
-# !!EXIT!!
+Our recipe:  
+
+1. Specifies the key i.e. `LSOA21CD`.  
+1. Removes selected variables e.g. `cycle_infra_length_m`.  
+1. Normalises numeric data.  
+
 ```{r}
-#| label: exit
-#| eval: false
+#| label: recipe
 
-knitr::knit_exit()
+# LSOA21CD is kept as an ID so it is not used as a clustering predictor
+lsoa_rec <- recipe(~ ., data = df_lsoa) |>
+  update_role(LSOA21CD, new_role = "id") |>
+  step_rm(
+    starts_with("cycle_infra_"),
+    count_point_n,
+    starts_with("mean_aadf_")
+  ) |>
+  step_normalize(all_numeric_predictors())
+
+lsoa_rec
+```
+
+# Specification.  
+
+Using the {tidyclust}^[Getting started with tidyclust ([tidyclust.tidymodels.org/articles/tidyclust.html#extract-results](https://tidyclust.tidymodels.org/articles/tidyclust.html#extract-results))].  
+
+```{r}
+#| label: kmeans-spec
+
+kmeans_spec <- k_means(num_clusters = 6) |>
+  set_engine("stats")
+
+kmeans_spec
+```
+
+# Workflow
+
+```{r}
+#| label: kmeans-wf
+
+kmeans_wf <- workflow(lsoa_rec, kmeans_spec)
+
+kmeans_wf
+```
+
+
+# Workflow fitted
+
+Fit the workflow to the data.  
+
+```{r}
+#| label: kmeans-fit
+
+set.seed(1234)
+kmeans_fit <- fit(kmeans_wf, data = df_lsoa)
+kmeans_fit
+```
+
+# Extract results
+
+```{r}
+#| label: kmeans-assignment
+
+extract_cluster_assignment(kmeans_fit)
+```
+
+```{r}
+#| label: kmeans-centroids
+
+extract_centroids(kmeans_fit)
+```
+
+```{r}
+#| label: kmeans-augment
+
+# Row order matches df_lsoa, so the LSOA ID stays alongside its cluster
+lsoa_clusters <- df_lsoa |>
+  select(LSOA21CD) |>
+  mutate(cluster = extract_cluster_assignment(kmeans_fit)$.cluster)
+
+lsoa_clusters
+```
+
+# Evaluate
+
+```{r}
+#| label: evaluate
+
+sse_within_total(kmeans_fit, df_lsoa)
+sse_ratio(kmeans_fit, df_lsoa)
+silhouette_avg(kmeans_fit, df_lsoa)
 ```
 

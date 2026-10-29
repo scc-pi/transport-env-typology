@@ -29,7 +29,7 @@ execute:
 
 # Introduction
 
-Before we look at the clustering models, it's useful to explore the candidate variables. Unlike supervised learning, clustering has no outcome variable, so exploratory analysis focuses on understanding the structure of the feature space. The objectives are to identify missing values, examine variable distributions, detect highly correlated features, identify potential transformations, and ensure that no single concept is disproportionately represented in the clustering algorithm. *TODO: add ref??*
+Before we look at applying a clustering algorithm, it's useful to explore the candidate variables. Unlike supervised learning, clustering has no outcome variable, so exploratory analysis focuses on understanding the structure of the feature space. The objectives are to identify missing values, examine variable distributions, detect highly correlated features, identify potential transformations, and ensure that no single concept is disproportionately represented in the clustering algorithm. *TODO: add ref??*
 
 Exploratory analysis is a standard part of clustering workflows because clustering algorithms are sensitive to the representation of the feature space. Examining variable distributions, identifying outliers, assessing correlations between variables, and applying appropriate transformations and standardisation can improve the interpretability and stability of cluster solutions (Tan, Steinbach & Kumar, 2019; Kaufman & Rousseeuw, 2005).
 
@@ -642,18 +642,18 @@ To reduce redundancy and prevent particular concepts from being overrepresented 
 
 Keeping:   
 
-- road_density_km_per_km2  
-- junction_density_per_km2  
-- bus_stop_density_per_km2  
-- pop_density_per_km2  
-- pct_no_car  
-- unemployment_rate  
-- imd_decile  
-- pct_20mph_or_less  
-- dist_city_centre_km  
-- mean_avg_speed_am_mph  
-- pct_a_road  
-- pop_16_plus  
+- `road_density_km_per_km2`  
+- `junction_density_per_km2`  
+- `bus_stop_density_per_km2`  
+- `pop_density_per_km2`  
+- `pct_no_car`  
+- `unemployment_rate`  
+- `imd_decile`  
+- `pct_20mph_or_less`  
+- `dist_city_centre_km`  
+- `mean_avg_speed_am_mph`  
+- `pct_a_road`  
+- `pop_16_plus`  
 
 :::
 
