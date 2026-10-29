@@ -40,6 +40,12 @@ library(writexl)
 # Sources all R/*.R same as _targets.R
 tar_source()       
 
+# Objects needed from our {targets} pipeline
+tar_load(sf_lsoa)
+tar_load(df_lsoa_ward)
+tar_load(file_oac)
+tar_load(file_oac_names)
+
 # ggplot theme
 set_theme(theme_minimal())
 ```
@@ -55,11 +61,6 @@ The OAC is "a hierarchical geodemographic classification which identifies neighb
 #| label: tbl-oac-etl
 #| tbl-cap: "Sample of Sheffield LSOA classifications"
 #| column: page
-
-tar_load(sf_lsoa)
-tar_load(df_lsoa_ward)
-tar_load(file_oac)
-tar_load(file_oac_names)
 
 # **** Read OAC files ****
 

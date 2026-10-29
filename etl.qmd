@@ -27,8 +27,6 @@ execute:
 
 # Introduction  
 
-We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our whole machine learning (ML) pipeline, but it is particularly helpful for the initial ETL noted on this page.   
-
 ```{r setup}
 
 # Packages
@@ -45,9 +43,14 @@ library(readxl)
 # Sources all R/*.R same as _targets.R
 tar_source()       
 
+# Objects needed from our {targets} pipeline
+tar_load(df_lsoa)
+
 # ggplot theme
 set_theme(theme_minimal())
 ```
+
+We're using the {targets}^[{targets} user manual ([books.ropensci.org/targets/targets.html](https://books.ropensci.org/targets/targets.html))] R package to help manage our whole machine learning (ML) pipeline, but it is particularly helpful for the initial ETL noted on this page.   
 
 # Source    
 
@@ -114,13 +117,10 @@ df_processed |>
 
 # Assemble  
 
-The different indicators are assembled into a single data frame. `LSOA21CD` is the key, and there's one row per LSOA and one column per indicator.  
+The different indicators are assembled into a single data frame called `df_lsoa` with `LSOA21CD` as the key. There's one row per LSOA and one column per indicator.  
 
 ```{r}
-#| label: df-lsoa-all
+#| label: df-lsoa
 
-# Load data frame of all LSOA indicators
-tar_load(df_lsoa_all)
-
-glimpse(df_lsoa_all)
+glimpse(df_lsoa)
 ```
