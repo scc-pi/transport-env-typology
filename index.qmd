@@ -1,0 +1,117 @@
+---
+title: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt, Sheffield City Council"
+date: today
+date-format: MMMM YYYY
+format:
+  html:
+    toc: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+The Neighbourhood Transport Environment Typology (NTET) will provide a common evidence base for transport planning, regeneration, climate policy, and public health interventions across the city. NTET is a city-wide classification of neighbourhoods, similar to [Acorn](https://acorn.caci.co.uk/) or [Mosaic](https://www.experian.co.uk/business/platforms/mosaic), but focused on transport. It provides a common framework used to compare similar places, target interventions, benchmark outcomes, and support future analytical models. The current version of NTET uses only publicly available data (plus some OS data under via the Public Sector Geospatial Agreement).
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .h-100}
+::: {.card-body}
+### Summary
+
+::: {.card-text}
+One-page summary of the project.
+:::
+
+::: {.mt-auto}
+[Open One-Page Summary document](one-page.qmd){.btn .btn-outline-primary .btn-sm}
+:::
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .h-100}
+::: {.card-body}
+### Output Area Classification
+
+::: {.card-text}
+Exploration of ONS Output Area Classifications 2021-22.
+:::
+
+::: {.mt-auto}
+[Output Area Classification document](oac.qmd){.btn .btn-outline-primary .btn-sm}
+:::
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .h-100}
+::: {.card-body}
+### Proposal
+
+::: {.card-text}
+Including context, direction. methodology and potential.
+:::
+
+::: {.mt-auto}
+[Open Proposal document](proposal.qmd){.btn .btn-outline-primary .btn-sm}
+:::
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .h-100}
+::: {.card-body}                                                                  
+### Data Preparation
+
+::: {.card-text}
+Including sourcing, processing, and assumbling the data ready for analysis.
+:::
+
+::: {.mt-auto}
+[Open Data Preparation document](etl.qmd){.btn .btn-outline-primary .btn-sm}
+:::
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .h-100}
+::: {.card-body}
+### Exploratory Analysis for Clustering
+
+::: {.card-text}
+Exploration of our candidate variables for clustering.
+:::
+
+::: {.mt-auto}
+[Open Exploratory Analysis for Clustering document](eda.qmd){.btn .btn-outline-primary .btn-sm}
+:::
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-4}
+::: {.card .h-100}
+::: {.card-body}
+### Clustering
+
+::: {.card-text}
+Use of clustering algorithms,
+:::
+
+::: {.mt-auto}
+[Open Clustering document](clustering.qmd){.btn .btn-outline-primary .btn-sm}
+:::
+:::
+:::
+:::
+
+:::
+
+<br>Code Links: [github.com/scc-pi/transport-env-typology](https://github.com/scc-pi/transport-env-typology)  
