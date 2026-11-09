@@ -38,7 +38,7 @@ One-page summary of the project.
 ### Output Area Classification
 
 ::: {.card-text}
-Exploration of ONS Output Area Classifications 2021-22.
+Exploration of ONS Output Area Classifications.
 :::
 
 ::: {.mt-auto}
@@ -54,7 +54,7 @@ Exploration of ONS Output Area Classifications 2021-22.
 ### Proposal
 
 ::: {.card-text}
-Including context, direction. methodology and potential.
+Including context, direction, methodology and potential.
 :::
 
 ::: {.mt-auto}
@@ -83,14 +83,14 @@ Including sourcing, processing, and assumbling the data ready for analysis.
 ::: {.g-col-12 .g-col-md-4}
 ::: {.card .h-100}
 ::: {.card-body}
-### Exploratory Analysis for Clustering
+### Exploratory Analysis
 
 ::: {.card-text}
 Exploration of our candidate variables for clustering.
 :::
 
 ::: {.mt-auto}
-[Open Exploratory Analysis for Clustering document](eda.qmd){.btn .btn-outline-primary .btn-sm}
+[Open Exploratory Analysis document](eda.qmd){.btn .btn-outline-primary .btn-sm}
 :::
 :::
 :::
