@@ -29,9 +29,9 @@ execute:
 
 # Introduction
 
-Before we look at the clustering models, it's useful to explore the candidate variables. Unlike supervised learning, clustering has no outcome variable, so exploratory analysis focuses on understanding the structure of the feature space. The objectives are to identify missing values, examine variable distributions, detect highly correlated features, identify potential transformations, and ensure that no single concept is disproportionately represented in the clustering algorithm. *TODO: add ref??*
+Before we look at applying a clustering algorithm, it's useful to explore the candidate variables. Unlike supervised learning, clustering has no outcome variable, so exploratory analysis focuses on understanding the structure of the feature space. The objectives are to identify missing values, examine variable distributions, detect highly correlated features, identify potential transformations, and ensure that no single concept is disproportionately represented in the clustering algorithm. *TODO: add ref??*
 
-Exploratory analysis is a standard part of clustering workflows because clustering algorithms are sensitive to the representation of the feature space. Examining variable distributions, identifying outliers, assessing correlations between variables, and applying appropriate transformations and standardisation can improve the interpretability and stability of cluster solutions (Tan, Steinbach & Kumar, 2019; Kaufman & Rousseeuw, 2005).
+Exploratory analysis is a standard part of clustering workflows because clustering algorithms are sensitive to the representation of the feature space. Examining variable distributions, identifying outliers, assessing correlations between variables, and applying appropriate transformations and standardisation can improve the interprability and stability of cluster solutions (Tan, Steinbach & Kumar, 2019; Kaufman & Rousseeuw, 2005).
 
 In predictive modelling you often ask: *Does this variable improve prediction?*  
 In clustering we ask: *Does this variable help distinguish meaningful neighbourhood types?*   
@@ -46,9 +46,7 @@ library(gt)
 library(gtExtras)
 library(sf)
 library(leaflet)
-# library(osdatahub)
 library(tidymodels)
-# library(tidyclust)
 library(skimr)
 library(ggcorrplot)
 library(factoextra)
@@ -57,7 +55,7 @@ library(factoextra)
 tar_source()       
 
 # Objects needed from our {targets} pipeline
-tar_load(df_lsoa_all)
+tar_load(df_lsoa)
 tar_load(sf_lsoa)
 tar_load(sf_ngd_highway)
 tar_load(sf_city)
@@ -66,75 +64,11 @@ tar_load(sf_city)
 set_theme(theme_minimal())
 ```
 
-```{r}
-#| label: debug
-#| eval: false
-
-tar_load(c(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa))
-
-# process_lsoa_road_network_near <- function(sf_ngd_roadlink, sf_ngd_roadnode, sf_lsoa) {
-
-links_bng <- to_bng(sf_ngd_roadlink)
-nodes_bng <- to_bng(sf_ngd_roadnode)
-areas <- lsoa_area_km2(sf_lsoa)
-
-# Clip road links to LSOA boundaries (+ 5 m buffer)
-# and re-measure each clipped segment.
-message("Intersecting road links with LSOAs (+5m) — this may take a moment...")
-links_clipped <- sf::st_intersection(
-  dplyr::select(links_bng, osid, roadclassification),
-  sf_lsoa |>
-    sf::st_buffer(dist = 5) |>
-    dplyr::select(LSOA21CD)
-) |>
-  dplyr::mutate(link_length_m = as.numeric(sf::st_length(geometry)))
-
-road_lengths <- links_clipped |>
-  sf::st_drop_geometry() |>
-  dplyr::group_by(LSOA21CD) |>
-  dplyr::summarise(
-    near_road_length_m   = sum(link_length_m, na.rm = TRUE),
-    near_a_road_length_m = sum(
-      link_length_m[grepl("A Road|Motorway", roadclassification)],
-      na.rm = TRUE
-    ),
-    near_road_link_count = dplyr::n(),
-    near_pct_a_road      = near_a_road_length_m / near_road_length_m,
-    .groups = "drop"
-  )
-
-# Count road nodes (junctions) falling within each LSOA.
-junction_counts <- sf::st_join(
-  dplyr::select(nodes_bng, osid),
-  dplyr::select(sf_lsoa, LSOA21CD),
-  join = sf::st_within
-) |>
-  sf::st_drop_geometry() |>
-  dplyr::filter(!is.na(LSOA21CD)) |>
-  dplyr::count(LSOA21CD, name = "junction_count")
-
-areas |>
-  dplyr::left_join(road_lengths, by = "LSOA21CD") |>
-  dplyr::left_join(junction_counts, by = "LSOA21CD") |>
-  dplyr::mutate(
-    near_road_density_km_per_km2 = (near_road_length_m   / 1000) / area_km2,
-    near_a_road_density_km_per_km2 = (near_a_road_length_m / 1000) / area_km2,
-    near_junction_density_per_km2= junction_count / area_km2
-  )
-# }
-
-
-```
-
 
 The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in the [ETL page](etl.qmd).  
 
 ```{r}
 #| label: df-lsoa
-
-# TODO
-df_lsoa <- df_lsoa_all
-rm(df_lsoa_all)
 
 glimpse(df_lsoa)
 ```
@@ -642,18 +576,18 @@ To reduce redundancy and prevent particular concepts from being overrepresented 
 
 Keeping:   
 
-- road_density_km_per_km2  
-- junction_density_per_km2  
-- bus_stop_density_per_km2  
-- pop_density_per_km2  
-- pct_no_car  
-- unemployment_rate  
-- imd_decile  
-- pct_20mph_or_less  
-- dist_city_centre_km  
-- mean_avg_speed_am_mph  
-- pct_a_road  
-- pop_16_plus  
+- `road_density_km_per_km2`  
+- `junction_density_per_km2`  
+- `bus_stop_density_per_km2`  
+- `pop_density_per_km2`  
+- `pct_no_car`  
+- `unemployment_rate`  
+- `imd_decile`  
+- `pct_20mph_or_less`  
+- `dist_city_centre_km`  
+- `mean_avg_speed_am_mph`  
+- `pct_a_road`  
+- `pop_16_plus`  
 
 :::
 

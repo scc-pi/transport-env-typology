@@ -241,8 +241,8 @@ list(
 
   # All indicators 
   tar_target(
-    df_lsoa_all,
-    assemble_lsoa_all(
+    df_lsoa,
+    assemble_lsoa(
       sf_lsoa,
       df_lsoa_road_network, 
       df_lsoa_speed, 
@@ -255,12 +255,5 @@ list(
       df_lsoa_cars, 
       df_lsoa_economic_activity
     )
-  ),
-  
-  # Only the indicators we're using for clustering
-  tar_target(
-    df_lsoa,
-    assemble_lsoa(df_lsoa_all)
   )
-  
 )

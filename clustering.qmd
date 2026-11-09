@@ -1,0 +1,201 @@
+---
+title: "Clustering"
+subtitle: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: top
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+  cache: false
+---
+
+# Introduction
+
+```{r setup}
+
+# Packages
+library(tidyverse)
+library(here)
+library(targets)
+library(gt)
+library(gtExtras)
+library(sf)
+library(leaflet)
+library(tidymodels)
+library(tidyclust)
+
+# Sources all R/*.R same as _targets.R
+tar_source()       
+
+# Objects needed from our {targets} pipeline
+tar_load(df_lsoa)
+
+# ggplot theme
+set_theme(theme_minimal())
+```
+
+Having acquired our data ([ETL](etl.qmd)) and spent some time understanding it ([EDA](eda.qmd)), this page will employ clustering algorithms.
+
+We're using the {tidymodels}^[{tidymodels} R packages ([www.tidymodels.org](https://www.tidymodels.org/))] framework, a collection of R packages for machine learning. In particular, we're using the {tidyclust}^[{tidyclust} R package ([tidyclust.tidymodels.org](https://tidyclust.tidymodels.org/index.html))] R package, which is effectively a clustering specific replacement for the {tidymodels} package {parsnip}^[{parsnip} R package ([parsnip.tidymodels.org](https://parsnip.tidymodels.org/))].   
+
+```{mermaid}
+%%| label: fig-overview
+%%| echo: true
+%%| code-fold: true
+%%| fig-cap: Code overview
+
+flowchart TD
+    df["<b>data</b><br/>df_lsoa"]
+    rec["<b>recipe</b><br/>lsoa_rec"]
+    spec["<b>specification</b><br/>kmeans_spec"]
+    wf["<b>workflow</b><br/>kmeans_wf"]
+    fit["<b>fitted workflow</b><br/>kmeans_fit"]
+    aug["<b>augment</b><br/>extract_cluster_assignment()"]
+    cent["<b>extract results</b><br/>extract_centroids()"]
+    eval["<b>evaluate</b><br/>sse_within_total(), sse_ratio(), silhouette_avg()"]
+    clust["<b>clusters</b><br/>LSOA21CD + cluster"]
+    
+    rec --> wf
+    spec --> wf
+
+    df --> fit
+    wf --> fit
+
+    fit --> aug
+    fit --> cent
+    fit --> eval
+    df --> eval
+    
+    df --> clust
+    aug --> clust
+```
+
+# Data  
+
+Data frame `df_lsoa` has `r ncol(df_lsoa) - 1` candidate variables for clustering. Notes on the production of `df_lsoa` are in the [ETL page](etl.qmd). Below is a sample of candidate variables.
+
+```{r}
+#| label: fig-df-lsoa
+
+df_lsoa |> 
+  select(1, 2, 3, 15, 25, 30) |> 
+  glimpse()
+```
+
+# Recipe
+
+Our recipe^[{recipes} R package ([recipes.tidymodels.org](https://recipes.tidymodels.org/))]:  
+
+1. Specifies the key i.e. `LSOA21CD`.  
+1. Removes selected variables e.g. `cycle_infra_length_m`.  
+1. Normalises numeric data.  
+
+Some notes on selecting and transforming candidate variables are in the [EDA page](eda.qmd)
+
+```{r}
+#| label: recipe
+#| code-fold: show
+
+# LSOA21CD is kept as an ID so it is not used as a clustering predictor
+lsoa_rec <- recipes::recipe(~ ., data = df_lsoa) |>
+  recipes::update_role(LSOA21CD, new_role = "id") |>
+  recipes::step_rm(
+    starts_with("cycle_infra_"),
+    count_point_n,
+    starts_with("mean_aadf_")
+  ) |>
+  recipes::step_normalize(all_numeric_predictors())
+```
+
+# Specification.  
+
+Define a model that fits clusters based on distances to a number of centres^[Getting started with tidyclust ([tidyclust.tidymodels.org/articles/tidyclust.html#extract-results](https://tidyclust.tidymodels.org/articles/tidyclust.html#extract-results))].
+
+```{r}
+#| label: kmeans-spec
+#| code-fold: show
+
+kmeans_spec <- tidyclust::k_means(num_clusters = 6, engine = "stats")
+kmeans_spec
+```
+
+# Workflow
+
+Create a workflow to "bundle together our pre-processing, modelling, and post-processing requests^[{workflows} R package ([workflows.tidymodels.org](https://workflows.tidymodels.org/))]".
+
+```{r}
+#| label: kmeans-wf
+#| code-fold: show
+
+kmeans_wf <- workflows::workflow(lsoa_rec, kmeans_spec)
+kmeans_wf
+```
+
+
+# Workflow fitted
+
+Fit the workflow to the data. The recipe describes *how* to preprocess the data, but it doesn't contain any data. 
+
+```{r}
+#| label: kmeans-fit
+#| code-fold: show
+
+set.seed(1234)
+kmeans_fit <- tidyclust::fit(kmeans_wf, data = df_lsoa)
+kmeans_fit
+```
+
+# Extract results
+
+```{r}
+#| label: kmeans-assignment
+
+tidyclust::extract_cluster_assignment(kmeans_fit)
+```
+
+```{r}
+#| label: kmeans-centroids
+
+tidyclust::extract_centroids(kmeans_fit)
+```
+
+```{r}
+#| label: kmeans-augment
+
+# Row order matches df_lsoa, so the LSOA ID stays alongside its cluster
+lsoa_clusters <- df_lsoa |>
+  select(LSOA21CD) |>
+  mutate(cluster = tidyclust::extract_cluster_assignment(kmeans_fit)$.cluster)
+
+lsoa_clusters
+```
+
+# Evaluate
+
+The fitted workflow keeps the trained model and the prepped recipe, but not the training rows. `kmeans_fit` holds the k-means centres and cluster assignments, so it can label the data it was trained on, but it can't recompute distances from the original observations. The metrics we're going to use need those distances, so they need to take the data as an argument.
+
+```{r}
+#| label: evaluate
+
+tidyclust::sse_within_total(kmeans_fit, df_lsoa)
+tidyclust::sse_ratio(kmeans_fit, df_lsoa)
+tidyclust::silhouette_avg(kmeans_fit, df_lsoa)
+```
+

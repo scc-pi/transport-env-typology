@@ -4,7 +4,7 @@
 
 # Returns a data frame (one row per LSOA) with all indicators 
 # assembled LSOA21CD as key. One row per LSOA and one column per indicator. 
-assemble_lsoa_all <- function(
+assemble_lsoa <- function(
     sf_lsoa,
     df_lsoa_road_network, 
     df_lsoa_speed, 
@@ -31,13 +31,4 @@ assemble_lsoa_all <- function(
     dplyr::left_join(df_lsoa_population, by = "LSOA21CD") |>
     dplyr::left_join(df_lsoa_cars, by = "LSOA21CD") |>
     dplyr::left_join(df_lsoa_economic_activity, by = "LSOA21CD")
-}
-
-# Returns a data frame (one row per LSOA) with the indicators we're going to
-# use for clustering. LSOA21CD is the key, one row per LSOA, and one column
-# per indicator. 
-assemble_lsoa <- function(df_lsoa_all) {
-  # Deselect the DfT indicators
-  df_lsoa_all |>
-    dplyr::select(!c(count_point_n, dplyr::contains("_aadf_")))
 }
