@@ -1,0 +1,286 @@
+---
+title: "Posit - EDA"
+subtitle: "Neighbourhood Transport Environment Typology"
+author: "Laurie Platt"
+date: last-modified
+date-format: "[Last updated ] DD MMMM, YYYY"
+format:
+  html:
+    css: resources/styles.css
+    code-tools: true
+    self-contained: false
+    code-fold: true
+    toc: true
+    toc-depth: 5
+    toc-expand: 1
+    number-sections: true
+    fig-cap-location: bottom
+    fig-align: left
+    code-links:
+      - text: scc-pi/transport-env-typology
+        icon: github
+        href: https://github.com/scc-pi/transport-env-typology
+execute:
+  warning: false
+  message: false
+  cache: true
+---
+
+
+```{r setup}
+
+# Packages
+library(tidyverse)
+library(here)
+library(targets)
+library(gt)
+library(gtExtras)
+library(sf)
+library(leaflet)
+library(osdatahub)
+library(tidymodels)
+library(tidyclust)
+library(skimr)
+
+# Sources all R/*.R same as _targets.R
+tar_source()       
+
+# ggplot theme
+set_theme(theme_minimal())
+```
+
+The data frame with candidate variables for clustering is called `df_lsoa`. Notes on the production of `df_lsoa` are in [ETL page](etl.qmd).  
+
+```{r}
+#| label: df-lsoa
+
+tar_load(df_lsoa)
+
+glimpse(df_lsoa)
+```
+
+
+-> feeds into the decision to recode cycling as binary
+
+
+```{r}
+#| label: zero-inflation
+
+# Zero inflation for key variables
+df_lsoa |>
+  summarise(
+    pct_zero_cycle_infra = mean(cycle_infra_length_m == 0),
+    pct_zero_a_road = mean(a_road_length_m == 0),
+    pct_zero_bus_stops = mean(bus_stop_count == 0)
+  )
+```
+
+```{r}
+
+df_lsoa |>
+  select(-LSOA21CD) |>
+  cor(use = "complete.obs") |>
+  as.data.frame() |>
+  rownames_to_column("var1") |>
+  pivot_longer(-var1, names_to = "var2", values_to = "r") |>
+  filter(var1 < var2, abs(r) >= 0.75) |>
+  arrange(desc(abs(r)))
+```
+
+```{r}
+
+df_lsoa_clean <- df_lsoa |>
+  mutate(has_cycle_infra = as.integer(cycle_infra_length_m > 0)) |>
+  select(
+   LSOA21CD,
+   road_density_km_per_km2, pct_a_road, junction_density_per_km2,
+   mean_speed_limit_mph, mean_avg_speed_am_mph, 
+   pct_20mph_or_less, pct_30mph_or_less,
+   has_cycle_infra,
+   dist_city_centre_km, bus_stop_density_per_km2,
+   imd_rand, pop_density_per_km2, pct_no_car, unemployment_rate
+  )
+
+rec_lsoa <- recipe(~ ., data = df_lsoa_clean) |>
+update_role(LSOA21CD, new_role = "id") |>
+step_zv(all_numeric_predictors()) |>
+step_impute_median(all_numeric_predictors()) |>
+step_normalize(all_numeric_predictors()) |>
+step_corr(all_numeric_predictors(), threshold = 0.90)
+
+rec_lsoa_prep <- prep(rec_lsoa)
+ 
+df_cluster <- bake(rec_lsoa_prep, new_data = NULL)
+ 
+x_cluster <- df_cluster |> select(-LSOA21CD)
+ 
+# What did step_corr drop?
+tidy(rec_lsoa_prep, number = 4)
+```
+
+Manually remove the redundant variables from `df_lsoa` before the recipe (drop counts where you have densities/rates, drop imd_decile, decide on cycling), then activate the eval: false on the standardise chunk and inspect what df_cluster looks like.
+
+1. Manually remove redundant variables from df_lsoa  
+1. Decide on cycling variables  
+1. Activate the recipe (remove eval: false) and inspect df_cluster  
+
+# Posit  
+
+Variables to drop (redundant):  
+
+* hh_no_car → keep pct_no_car
+* unemployed_count → keep unemployment_rate
+* imd_decile → keep imd_rand
+* road_length_m → keep road_density_km_per_km2
+* junction_count → keep junction_density_per_km2
+* road_link_count → highly correlated with junction_count, already covered by junction_density
+* a_road_length_m → keep pct_a_road instead
+* area_km2 → drop since road_density already accounts for geographic area
+
+For cycling variables, since 95.6% are zeros, I'll recode into a binary has_cycle_infra flag and drop the raw length variable.
+
+So my final clustering variable set: road_density, pct_a_road, junction_density, mean_speed_limit_mph (still need to resolve overlap with pct_20mph and median_speed_limit), pct_20mph_or_less, pct_30mph_or_less, mean_avg_speed_am_mph, and has_cycle_infra.
+
+Checking correlations, mean_speed_limit_mph with pct_20mph_or_less and median_speed_limit_mph both fall just under the 0.90 threshold, so step_corr won't automatically drop them — I'll leave that decision to the recipe for now.
+
+For count-versus-density pairs, I'll drop the raw counts like hh_no_car, unemployed_count, imd_decile, road_length_m, junction_count, road_link_count, a_road_length_m, and area_km2, keeping the normalized versions instead: pct_no_car, unemployment_rate, imd_rand, road_density_km_per_km2, junction_density_per_km2, and pct_a_road. Cycling infrastructure gets recoded to a binary has_cycle_infra flag, and I should also exclude denominator fields like hh_total and pop_16_plus since they're just used to compute rates rather than being clustering variables themselves.
+
+I'm also dropping bus_stop_count in favor of bus_stop_density_per_km2 for comparability, and considering whether median_speed_limit_mph is too correlated with mean_speed_limit to keep both.
+
+So the final variable set includes road density, A-road density, junction density, speed limit measures (mean and median mph, plus percent under 20/30mph), cycle infrastructure presence, distance to city centre, IMD rank, bus stop density, population density, and percent of households without a car.
+
+I'm also adding unemployment rate to the keep list, while dropping the raw geographic and count variables that got absorbed into density measures — area, road length, A-road length, link counts, junction counts, cycle infrastructure length, IMD decile, and bus stop counts — since those are now redundant denominators behind the density variables I'm keeping.
+
+That leaves 15 variables for clustering, which feels like a reasonable set. Now I'm moving to the code: I'll put the variable selection and transformation logic in the "what-next" chunk, manually recoding things like cycling infrastructure into a binary presence/absence flag, and then update the standardise chunk to actually run instead of being skipped.
+
+Writing the recoding script...
+
+Adding more variable selections...
+
+Checking whether step_corr is still necessary after this manual pruning—remaining correlations look mostly below 0.90 now, so it won't drop much further but still serves as a useful safety net. I'll finalize this selection and place it in the features.qmd file.
+
+The drops are clear from the EDA. My plan:
+
+-   **Recode** cycling to binary `has_cycle_infra` (presence/absence is still meaningful)
+-   **Drop** raw counts where densities/rates exist: `road_length_m`, `a_road_length_m`, `road_link_count`, `junction_count`, `bus_stop_count`, `hh_no_car`, `unemployed_count`, `cycle_infra_*`
+-   **Drop** denominators that are only there to compute rates: `hh_total`, `pop_16_plus`, `area_km2`
+-   **Drop** `imd_decile` (keep `imd_rand`), `median_speed_limit_mph` (keep `mean_speed_limit_mph`)
+
+
+# What next?
+
+The following work remains:
+
+1. Define clustering target(s) in _targets.R (K-Means, Hierarchical, 1. GMM implementations)  
+1. Create evaluation targets (silhouette scores, stability metrics, 1. separation tests)  
+1. Develop exploratory analysis (PCA, correlation matrix 1. visualization)  
+1. Conduct hyperparameter tuning (optimal K, linkage methods, etc.)  
+1. Create final typology output and spatial visualization  
+1. Generate interpretability report with cluster profiling  
+
+```{r}
+#| label: what-next
+
+# Recode cycling infrastructure as binary: 95.6% of LSOAs have zero, so the
+# continuous variable carries almost no signal
+# Drop raw counts where densities/rates are available, and denominator columns
+df_lsoa_clean <- df_lsoa |>
+  mutate(has_cycle_infra = as.integer(cycle_infra_length_m > 0)) |>
+  select(
+    LSOA21CD,
+    # Road network
+    road_density_km_per_km2,
+    pct_a_road,
+    junction_density_per_km2,
+    # Speed
+    mean_speed_limit_mph,
+    mean_avg_speed_am_mph,
+    pct_20mph_or_less,
+    pct_30mph_or_less,
+    # Active travel
+    has_cycle_infra,
+    # Accessibility
+    dist_city_centre_km,
+    bus_stop_density_per_km2,
+    # Context
+    imd_rand,
+    pop_density_per_km2,
+    pct_no_car,
+    unemployment_rate
+  )
+```
+
+
+# Standardise variables
+
+Recipe specification with:  
+
+1. Zero-variance removal  
+1. Median imputation  
+1. Normalization to mean=0, sd=1  
+1. Correlation filtering (threshold=0.90)  
+
+```{r}
+#| label: standardise
+
+rec_lsoa <- recipe(~ ., data = df_lsoa_clean) |>
+
+  # LSOA identifier (retain but exclude from modelling)
+  update_role(LSOA21CD, new_role = "id") |>
+
+  # Remove zero-variance predictors
+  step_zv(all_numeric_predictors()) |>
+
+  # Impute any remaining missing values
+  step_impute_median(all_numeric_predictors()) |>
+
+  # Standardise all predictors to mean = 0, sd = 1
+  step_normalize(all_numeric_predictors()) |>
+
+  # Remove highly correlated variables
+  step_corr(
+    all_numeric_predictors(),
+    threshold = 0.90
+  )
+
+# Prepare recipe
+rec_lsoa_prep <- prep(rec_lsoa)
+
+# Create clustering dataset
+df_cluster <- bake(
+  rec_lsoa_prep,
+  new_data = NULL
+)
+
+# Predictor matrix for clustering
+x_cluster <- df_cluster |>
+  select(-LSOA21CD)
+```
+
+The recipe produced 14 predictor columns (plus LSOA21CD), all standardized. step_corr dropped nothing — the manual curation worked well. The result is exactly what we want: 14 features, all normalized, ready for clustering.
+
+-----
+
+The manual curation did exactly what it needed to: step_corr dropped nothing, meaning the remaining 14 variables are all below the 0.90 correlation threshold. The recipe handled the rest cleanly — step_zv and step_impute_median found nothing to act on either, so df_cluster is 343 × 15 (LSOA ID + 14 standardised predictors), ready for clustering.
+
+One thing to note: has_cycle_infra normalised to a very narrow range (binary 0/1 → standardised values of −0.21 or ~4.5). It'll contribute, but less than a more spread variable — worth keeping in mind when interpreting cluster profiles later.
+
+I'll suggest some questions below.
+
+Run an initial K-means workflow with tidyclust, using a range of k values and silhouette scores to identify a sensible number of clusters.
+
+Visualise the 14 features with a PCA biplot to get a sense of the latent structure before committing to a clustering algorithm.
+
+Plot the geographic distribution of a few key variables (e.g., pct_20mph_or_less, bus_stop_density_per_km2) on the Leaflet basemap to build intuition before modelling.
+
+# Explore distributions
+  
+  
+```{r}
+#| label: city-boundary
+
+make_basemap() 
+```
+  
+# Examine correlations
+
