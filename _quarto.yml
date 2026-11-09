@@ -9,7 +9,17 @@ website:
       - icon: github
         href: https://github.com/scc-pi/transport-env-typology
         aria-label: GitHub
-
+  sidebar:
+    contents:
+      - text: "Summary"
+        href: one-page.qmd
+      - href: oac.qmd
+      - href: proposal.qmd
+      - href: etl.qmd
+      - text: "Exploratory Analysis"
+        href: eda.qmd
+      - href: clustering.qmd
+        
 format:
   html:
     theme: cosmo
