@@ -678,4 +678,17 @@ The first two components explain about 46% of the variance, and the curve flatte
 fviz_pca_biplot(pca_obj)
 ```
 
+# Clustering tendancy
+
+
+
+```{r}
+#| label: fig-hopkins
+#| fig-cap: "Hopkins statistic"
+
+hopkins <- get_clust_tendency(df_pca, n = 6)
+hopkins$plot
+```
+
+A Hopkins statistic of `r round(hopkins$hopkins_stat, 4)` indicates a strong clustering tendency and supports proceeding with clustering.   
 
