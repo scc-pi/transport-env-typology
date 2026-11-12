@@ -156,7 +156,7 @@ These patterns suggest right-skewed distributions, where many observations are c
 
 ::: {.callout-note}
 ## Summary  
-We're going to run clustering without the DfT indicators. The OS NGD speed metrics and road network characteristics will carry most of the traffic signal. The DfT indicators would contribute little given their sparse spatial coverage. An alternative would be to impute missing traffic values, for example by using the median of the five nearest neighbouring LSOAs (by centroid distance). 
+We're going to run clustering without the 5 DfT traffic indicators. The OS NGD speed metrics and road network characteristics will carry most of the traffic signal. The DfT traffic indicators would contribute little given their sparse spatial coverage. An alternative would be to impute missing traffic values, for example by using the median of the five nearest neighbouring LSOAs (by centroid distance). 
 :::
 
 ```{r}
@@ -172,7 +172,7 @@ df_skim_missing |>
   fmt_percent(columns = pct_missing, decimals = 0)
 ```
 
-The five DfT traffic indicators (`count_point_n`, `mean_aadf_*`) are missing for `r sum(is.na(df_lsoa$count_point_n))` of `r nrow(df_lsoa)` LSOAs (78%). All strategic roads have DfT count points and non-strategic roads have some.  Most residential LSOAs simply have no count point within their boundary, so `NA` genuinely means *unmeasured*, not zero.
+Listed in @tbl-missing are five DfT traffic indicators (`count_point_n`, `mean_aadf_*`) are missing for `r sum(is.na(df_lsoa$count_point_n))` of `r nrow(df_lsoa)` LSOAs (78%). All strategic roads have DfT count points and non-strategic roads have some.  Most residential LSOAs simply have no count point within their boundary, so `NA` genuinely means *unmeasured*, not zero.
 
 ```{r}
 #| label: fig-count-coverage
@@ -507,6 +507,10 @@ ggplot(df_lsoa, aes(x = a_road_length_m)) +
   )
 ```
 
+# Feature scaling
+
+
+
 # Correlation    
 
 For clustering, our intent is not to interpret the correlations themselves. It is to decide whether some variables are essentially measuring the same underlying concept and therefore risk being over-weighted in the clustering. 
@@ -680,8 +684,6 @@ fviz_pca_biplot(pca_obj)
 
 # Clustering tendancy
 
-
-
 ```{r}
 #| label: fig-hopkins
 #| fig-cap: "Hopkins statistic"
@@ -690,5 +692,4 @@ hopkins <- get_clust_tendency(df_pca, n = 6)
 hopkins$plot
 ```
 
-A Hopkins statistic of `r round(hopkins$hopkins_stat, 4)` indicates a strong clustering tendency and supports proceeding with clustering.   
-
+A Hopkins statistic of `r round(hopkins$hopkins_stat, 4)` indicates a strong clustering tendency and supports proceeding with clustering.
