@@ -9,12 +9,13 @@ The resulting typology, the **Neighbourhood Transport Environment Typology (NTET
 
 ## Methodology
 
-The project follows four stages:
+The project follows five stages:
 
-1. **Data preparation** — extract, process, and assemble a neighbourhood-level analytical dataset.  
-2. **Exploratory analysis** — feature scaling, correlation analysis, and understanding principal dimensions of variation (e.g. urban intensity, car dependency, accessibility).  
-3. **Clustering** — compare K-Means, Hierarchical Clustering, and Gaussian Mixture Models.  
-4. **Evaluation** — assess cluster robustness via silhouette score, stability, statistical separation, and policy interpretability.  
+1. **Data preparation** - extract, process, and assemble a neighbourhood-level analytical dataset.  
+2. **Exploratory analysis** - feature scaling, correlation analysis, and understanding principal dimensions of variation (e.g. urban intensity, car dependency, accessibility).  
+3. **Clustering** - compare K-Means, Hierarchical Clustering, and Gaussian Mixture Models.  
+4. **Evaluation** - assess cluster robustness via silhouette score, stability, statistical separation, and policy interpretability.  
+5. **Communicate** - the results.  
 
 ## Running the Pipeline
 
