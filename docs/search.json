@@ -217,11 +217,11 @@
     ]
   },
   {
-    "objectID": "eda.html#standardise",
-    "href": "eda.html#standardise",
+    "objectID": "eda.html#transform-scale",
+    "href": "eda.html#transform-scale",
     "title": "Exploratory Analysis for Clustering",
-    "section": "7.1 Standardise",
-    "text": "7.1 Standardise\nBefore the PCA we need to standardise our remaining variables.\n\n\nCode\nrec &lt;- recipe(~ ., data = select(df_lsoa, -LSOA21CD)) |&gt; \n  step_normalize(all_numeric_predictors())\n\nrec_prep &lt;- prep(rec)\n\ndf_pca &lt;- bake(rec_prep, new_data = NULL)\n\ndf_pca |&gt; \n  head() |&gt; \n  my_gt()\n\n\n\n\nTable 4: Sample of standardised variables\n\n\n\n\n\n\n\n\n\narea_km2\na_road_length_m\npct_a_road\nroad_density_km_per_km2\na_road_density_km_per_km2\njunction_density_per_km2\nmean_avg_speed_am_mph\npct_20mph_or_less\npct_30mph_or_less\ndist_city_centre_km\nimd_decile\nbus_stop_count\nbus_stop_density_per_km2\npop_density_per_km2\npct_no_car\nhh_total\npop_16_plus\nunemployment_rate\n\n\n\n\n-0.098\n-0.482\n-0.738\n0.416\n-0.661\n0.069\n0.335\n0.394\n-1.06\n0.364\n-0.282\n0.591\n0.818\n-0.238\n-0.444\n1.14\n0.209\n-0.021\n\n\n-0.109\n-0.482\n-0.738\n-0.592\n-0.661\n-1.07\n0.065\n-1.15\n0.464\n0.230\n1.59\n-0.454\n-0.320\n-0.286\n-1.28\n-1.00\n-0.762\n-1.38\n\n\n0.029\n-0.482\n-0.738\n-1.70\n-0.661\n-1.34\n0.887\n-0.322\n-1.27\n0.149\n1.59\n-0.802\n-1.14\n-1.18\n-0.979\n-0.524\n-0.395\n-1.20\n\n\n-0.00318\n-0.482\n-0.738\n-2.01\n-0.661\n-1.59\n0.229\n-1.15\n0.464\n0.489\n1.59\n-0.541\n-0.988\n-1.09\n-1.40\n-0.690\n-0.342\n-0.922\n\n\n0.070\n-0.467\n-0.709\n-1.88\n-0.652\n-1.31\n-1.08\n0.608\n0.464\n-0.350\n0.967\n-0.019\n-0.893\n-1.16\n-0.774\n1.54\n0.624\n-0.518\n\n\n-0.119\n-0.482\n-0.738\n0.546\n-0.661\n0.327\n-0.675\n1.57\n0.464\n-0.283\n0.342\n-1.06\n-1.25\n0.477\n-0.437\n0.643\n0.266\n0.057",
+    "section": "6.1 Transform & scale",
+    "text": "6.1 Transform & scale\nAt this point we need to transform some skewed features and scale all of them. We’re going to initially default to Yeo-Johnson transformation and standardising for scaling. TODO: Why?\n\n\nCode\ncluster_vars &lt;- c(\n  \"LSOA21CD\",\n  # \"area_km2\",\n  # \"road_length_m\",\n  # \"a_road_length_m\",\n  # \"road_link_count\",\n  \"pct_a_road\",\n  # \"junction_count\",\n  \"road_density_km_per_km2\",\n  \"a_road_density_km_per_km2\",\n  \"junction_density_per_km2\",\n  # \"mean_speed_limit_mph\",\n  # \"median_speed_limit_mph\",\n  \"mean_avg_speed_am_mph\",\n  \"pct_20mph_or_less\",\n  \"pct_30mph_or_less\",\n  \"dist_city_centre_km\",\n  # \"imd_rank\",\n  \"imd_decile\",\n  # \"bus_stop_count\",\n  \"bus_stop_density_per_km2\",\n  \"pop_density_per_km2\",\n  \"pct_no_car\",\n  # \"hh_no_car\",\n  # \"hh_total\",\n  \"pop_16_plus\",\n  # \"unemployment_count\",\n  \"unemployment_rate\"\n)\n\ndf_cluster &lt;- df_lsoa |&gt;\n  select(all_of(cluster_vars))\n\nrec &lt;- recipe(~ ., data = df_cluster) |&gt;\n  update_role(LSOA21CD, new_role = \"id\") |&gt;\n  step_YeoJohnson(\n    a_road_density_km_per_km2, \n    pct_a_road,\n    bus_stop_density_per_km2, \n    pop_density_per_km2\n  ) |&gt;\n  step_normalize(all_numeric_predictors())\n\n# df_var_info &lt;- rec$var_info\n\nrec_prep &lt;- prep(rec)\n\ndf_pca &lt;- bake(rec_prep, new_data = NULL) |&gt; \n  select(-LSOA21CD)\n\ndf_pca |&gt; \n  head() |&gt; \n  my_gt()\n\n\n\n\nTable 4: Sample of standardised variables\n\n\n\n\n\n\n\n\n\npct_a_road\nroad_density_km_per_km2\na_road_density_km_per_km2\njunction_density_per_km2\nmean_avg_speed_am_mph\npct_20mph_or_less\npct_30mph_or_less\ndist_city_centre_km\nimd_decile\nbus_stop_density_per_km2\npop_density_per_km2\npct_no_car\npop_16_plus\nunemployment_rate\n\n\n\n\n-0.738\n0.416\n-0.944\n0.069\n0.335\n0.394\n-1.06\n0.364\n-0.282\n0.998\n-0.066\n-0.444\n0.209\n-0.021\n\n\n-0.738\n-0.592\n-0.944\n-1.07\n0.065\n-1.15\n0.464\n0.230\n1.59\n-0.150\n-0.119\n-1.28\n-0.762\n-1.38\n\n\n-0.738\n-1.70\n-0.944\n-1.34\n0.887\n-0.322\n-1.27\n0.149\n1.59\n-1.98\n-1.44\n-0.979\n-0.395\n-1.20\n\n\n-0.738\n-2.01\n-0.944\n-1.59\n0.229\n-1.15\n0.464\n0.489\n1.59\n-1.42\n-1.25\n-1.40\n-0.342\n-0.922\n\n\n-0.709\n-1.88\n-0.899\n-1.31\n-1.08\n0.608\n0.464\n-0.350\n0.967\n-1.16\n-1.39\n-0.774\n0.624\n-0.518\n\n\n-0.738\n0.546\n-0.944\n0.327\n-0.675\n1.57\n0.464\n-0.283\n0.342\n-2.72\n0.621\n-0.437\n0.266\n0.057",
     "crumbs": [
       "Exploratory Analysis"
     ]
@@ -230,8 +230,8 @@
     "objectID": "eda.html#scree-plot",
     "href": "eda.html#scree-plot",
     "title": "Exploratory Analysis for Clustering",
-    "section": "7.2 Scree plot",
-    "text": "7.2 Scree plot\n\n\nCode\npca_obj &lt;- prcomp(df_pca, scale. = FALSE)\n\n# summary(pca_obj)\nfviz_eig(pca_obj)\n\n\n\n\n\nFigure 10: Skree plot\n\n\n\n\n\n\n\n\nThe first two components explain about 46% of the variance, and the curve flattens after the fourth.",
+    "section": "6.2 Scree plot",
+    "text": "6.2 Scree plot\n\n\nCode\npca_obj &lt;- prcomp(df_pca, scale. = FALSE)\n\n# summary(pca_obj)\nfviz_eig(pca_obj)\n\n\n\n\n\nFigure 10: Skree plot\n\n\n\n\n\n\n\n\nThe first two components explain about 46% of the variance, and the curve flattens after the fourth.",
     "crumbs": [
       "Exploratory Analysis"
     ]
@@ -240,8 +240,8 @@
     "objectID": "eda.html#pca-biplot",
     "href": "eda.html#pca-biplot",
     "title": "Exploratory Analysis for Clustering",
-    "section": "7.3 PCA biplot",
-    "text": "7.3 PCA biplot\n\n\nCode\nfviz_pca_biplot(pca_obj)\n\n\n\n\n\nFigure 11: Biplot",
+    "section": "6.3 PCA biplot",
+    "text": "6.3 PCA biplot\n\n\nCode\nfviz_pca_biplot(pca_obj)\n\n\n\n\n\nFigure 11: Biplot",
     "crumbs": [
       "Exploratory Analysis"
     ]
