@@ -507,10 +507,6 @@ ggplot(df_lsoa, aes(x = a_road_length_m)) +
   )
 ```
 
-# Feature scaling
-
-*TODO*  
-
 # Correlation    
 
 For clustering, our intent is not to interpret the correlations themselves. It is to decide whether some variables are essentially measuring the same underlying concept and therefore risk being over-weighted in the clustering. 
@@ -532,15 +528,16 @@ The exploratory analysis above has already identified some variables that we don
 #| out-width: 100%
 
 # Deselect some candidate variables
-df_lsoa <- df_lsoa |> 
+df_cor <- df_lsoa |> 
   select(!c(
+    LSOA21CD,
     starts_with("cycle_infra_"), 
     count_point_n, 
     starts_with("mean_aadf_")
   ))
 
 # Correlation matrix
-cor_mat <- cor(select(df_lsoa, -LSOA21CD))
+cor_mat <- cor(df_cor)
 
 # Correlation matrix heatmap
 ggcorrplot(
@@ -560,7 +557,7 @@ We can generate an objective list of variables that are statistically redundant.
 #| label: tbl-stat-redundant
 #| tbl-cap: "Statistically redundant variables"
 
-rec <- recipe(~ ., data = df_lsoa) |> 
+rec <- recipe(~ ., data = df_cor) |> 
   step_corr(all_numeric_predictors(), threshold = 0.8)
 
 rec_prep <- prep(rec)
@@ -612,22 +609,6 @@ Dropping:
 
 ::::
 
-```{r}
-#| label: corr-drop
-
-df_lsoa <- df_lsoa |> 
-  select(!c(
-    road_length_m,  
-    road_link_count,
-    junction_count,
-    hh_no_car,
-    unemployed_count,
-    imd_rank,
-    mean_speed_limit_mph,
-    median_speed_limit_mph,
-  ))
-```
-
 # PCA 
 
 The PCA (Principal Component Analysis) helps us understand the latent dimensions.  
@@ -639,20 +620,64 @@ The PCA (Principal Component Analysis) helps us understand the latent dimensions
 
 *TODO: Run PCA before and after correlation filtering. If the first few components barely change, that's good evidence that we've removed redundancy without losing meaningful structure.*
 
-## Standardise
+## Transform & scale
 
-Before the PCA we need to standardise our remaining variables.
+At this point we need to transform some skewed features and scale all of them. We're going to initially default to Yeo-Johnson transformation and standardising for scaling. *TODO: Why?*
+
 
 ```{r}
 #| label: tbl-standardise
 #| tbl-cap: "Sample of standardised variables" 
 
-rec <- recipe(~ ., data = select(df_lsoa, -LSOA21CD)) |> 
+cluster_vars <- c(
+  "LSOA21CD",
+  # "area_km2",
+  # "road_length_m",
+  # "a_road_length_m",
+  # "road_link_count",
+  "pct_a_road",
+  # "junction_count",
+  "road_density_km_per_km2",
+  "a_road_density_km_per_km2",
+  "junction_density_per_km2",
+  # "mean_speed_limit_mph",
+  # "median_speed_limit_mph",
+  "mean_avg_speed_am_mph",
+  "pct_20mph_or_less",
+  "pct_30mph_or_less",
+  "dist_city_centre_km",
+  # "imd_rank",
+  "imd_decile",
+  # "bus_stop_count",
+  "bus_stop_density_per_km2",
+  "pop_density_per_km2",
+  "pct_no_car",
+  # "hh_no_car",
+  # "hh_total",
+  "pop_16_plus",
+  # "unemployment_count",
+  "unemployment_rate"
+)
+
+df_cluster <- df_lsoa |>
+  select(all_of(cluster_vars))
+
+rec <- recipe(~ ., data = df_cluster) |>
+  update_role(LSOA21CD, new_role = "id") |>
+  step_YeoJohnson(
+    a_road_density_km_per_km2, 
+    pct_a_road,
+    bus_stop_density_per_km2, 
+    pop_density_per_km2
+  ) |>
   step_normalize(all_numeric_predictors())
+
+# df_var_info <- rec$var_info
 
 rec_prep <- prep(rec)
 
-df_pca <- bake(rec_prep, new_data = NULL)
+df_pca <- bake(rec_prep, new_data = NULL) |> 
+  select(-LSOA21CD)
 
 df_pca |> 
   head() |> 
